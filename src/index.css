@@ -1,111 +1,110 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+/* ============================================================
+   Design tokens — sumber kebenaran: DESIGN.md §1 (warna) & §2 (tipografi)
+   Tailwind v4 tidak pakai tailwind.config.js. Setiap variabel di dalam
+   @theme otomatis jadi utility class, mengikuti namespace-nya:
+     --color-*  ->  bg-*, text-*, border-*, ring-*, dst.
+     --font-*   ->  font-*
+   Jadi --color-spotify-green langsung bisa dipakai sebagai
+   bg-spotify-green / text-spotify-green / border-spotify-green.
+   ============================================================ */
+@theme {
+  /* Warna — DESIGN.md §1 */
+  --color-spotify-black: #121212;
+  --color-spotify-black-pure: #000000;
+  --color-spotify-dark-gray: #181818;
+  --color-spotify-elevated: #282828;
+  --color-spotify-light-gray: #b3b3b3;
+  --color-spotify-white: #ffffff;
+  --color-spotify-green: #1db954;
+  --color-spotify-green-hover: #1ed760;
+  --color-spotify-border: #2a2a2a;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Tipografi — DESIGN.md §2.
+     Meng-override --font-sans sekaligus mengganti font default <html>,
+     karena preflight Tailwind memakai --default-font-family yang
+     nilainya diturunkan dari --font-sans. */
+  --font-sans: "Inter", system-ui, sans-serif;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  /* Animasi toast — DESIGN.md §7: slide-in dari kanan + fade.
+     Namespace --animate-* menghasilkan utility class `animate-toast-in`.
+     Di Tailwind v4 @keyframes-nya boleh ditulis langsung di dalam @theme. */
+  --animate-toast-in: toast-in 200ms ease-out;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+@layer base {
+  html {
+    /* Memberi tahu browser bahwa aplikasi ini dark theme, supaya scrollbar
+       dan kontrol form bawaan ikut gelap dan tidak "menabrak" palet DESIGN.md */
+    color-scheme: dark;
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  body {
+    @apply min-h-screen bg-spotify-black text-spotify-white antialiased;
+  }
+
+  /* Thumb untuk slider progress & volume di NowPlayingBar.
+     appearance-none di komponennya menghapus tampilan bawaan browser TERMASUK
+     thumb-nya, jadi thumb harus digambar ulang di sini — dan ini satu-satunya
+     cara: pseudo-element vendor seperti ::-webkit-slider-thumb tidak bisa
+     ditulis sebagai utility class Tailwind.
+
+     Mengikuti perilaku Spotify: thumb baru muncul saat slider di-hover atau
+     difokus, sehingga bar-nya terlihat bersih saat lagu berjalan. */
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 0.75rem;
+    width: 0.75rem;
+    border-radius: var(--radius-full);
+    background: var(--color-spotify-white);
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    height: 0.75rem;
+    width: 0.75rem;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--color-spotify-white);
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  input[type='range']:hover::-webkit-slider-thumb,
+  input[type='range']:focus-visible::-webkit-slider-thumb {
+    opacity: 1;
+  }
+
+  input[type='range']:hover::-moz-range-thumb,
+  input[type='range']:focus-visible::-moz-range-thumb {
+    opacity: 1;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+/* DESIGN.md §7 — hormati preferensi OS user yang mematikan animasi.
+   Animasi dekoratif (hover card, slide-in toast) dinonaktifkan;
+   niatnya bukan durasi 0 harfiah, tapi cukup instan agar tidak memicu
+   motion sickness sambil tetap menjalankan callback transitionend. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }

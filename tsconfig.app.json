@@ -16,7 +16,15 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path alias — harus sinkron dengan resolve.alias di vite.config.ts.
+       Tanpa "baseUrl" (deprecated di TS 6): path di-resolve relatif ke file tsconfig ini. */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     /* Linting */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
