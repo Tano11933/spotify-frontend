@@ -11,6 +11,7 @@ import type {
   Artist,
   AuthResponse,
   MessageResponse,
+  Playlist,
   Song,
   TokenPair,
   User,
@@ -174,4 +175,37 @@ export const catalogApi = {
 
   getSongs: () => api.get<Song[]>('/songs').then((res) => res.data),
   getSong: (id: number) => api.get<Song>(`/songs/${id}`).then((res) => res.data),
+}
+
+export const playlistApi = {
+  getMine: () => api.get<Playlist[]>('/playlists').then((res) => res.data),
+  getPublic: () => api.get<Playlist[]>('/playlists/public').then((res) => res.data),
+  getById: (id: number) => api.get<Playlist>(`/playlists/${id}`).then((res) => res.data),
+  create: (payload: { name: string; description: string; is_public: boolean }) =>
+    api.post<Playlist>('/playlists', payload).then((res) => res.data),
+  update: (id: number, payload: Partial<Pick<Playlist, 'name' | 'description' | 'is_public'>>) =>
+    api.put<Playlist>(`/playlists/${id}`, payload).then((res) => res.data),
+  delete: (id: number) => api.delete<MessageResponse>(`/playlists/${id}`).then((res) => res.data),
+  addSong: (id: number, songId: number) =>
+    api.post<MessageResponse>(`/playlists/${id}/songs`, { song_id: songId }).then((res) => res.data),
+  removeSong: (id: number, songId: number) =>
+    api.delete<MessageResponse>(`/playlists/${id}/songs/${songId}`).then((res) => res.data),
+}
+
+export const adminApi = {
+  createArtist: (payload: Pick<Artist, 'name' | 'bio' | 'image_url'>) =>
+    api.post<Artist>('/artists', payload).then((res) => res.data),
+  updateArtist: (id: number, payload: Partial<Pick<Artist, 'name' | 'bio' | 'image_url'>>) =>
+    api.put<Artist>(`/artists/${id}`, payload).then((res) => res.data),
+  deleteArtist: (id: number) => api.delete<MessageResponse>(`/artists/${id}`).then((res) => res.data),
+  createAlbum: (payload: Pick<Album, 'title' | 'cover_url' | 'release_date' | 'artist_id'>) =>
+    api.post<Album>('/albums', payload).then((res) => res.data),
+  updateAlbum: (id: number, payload: Partial<Pick<Album, 'title' | 'cover_url' | 'release_date' | 'artist_id'>>) =>
+    api.put<Album>(`/albums/${id}`, payload).then((res) => res.data),
+  deleteAlbum: (id: number) => api.delete<MessageResponse>(`/albums/${id}`).then((res) => res.data),
+  createSong: (payload: Pick<Song, 'title' | 'duration' | 'file_url' | 'artist_id'> & { album_id?: number | null }) =>
+    api.post<Song>('/songs', payload).then((res) => res.data),
+  updateSong: (id: number, payload: Partial<Pick<Song, 'title' | 'duration' | 'file_url' | 'artist_id' | 'album_id'>>) =>
+    api.put<Song>(`/songs/${id}`, payload).then((res) => res.data),
+  deleteSong: (id: number) => api.delete<MessageResponse>(`/songs/${id}`).then((res) => res.data),
 }
