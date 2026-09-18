@@ -42,6 +42,14 @@
       transform: translateX(0);
     }
   }
+
+  @keyframes field-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+  }
 }
 
 @layer base {
@@ -53,6 +61,53 @@
 
   body {
     @apply min-h-screen bg-spotify-black text-spotify-white antialiased;
+  }
+
+  /* Seleksi teks pakai hijau tipis — konsisten dengan accent DESIGN.md §1 */
+  ::selection {
+    background: rgba(29, 185, 84, 0.3);
+    color: var(--color-spotify-white);
+  }
+
+  /* Scrollbar tipis yang nyatu dengan dark theme */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-spotify-elevated) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-spotify-elevated);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+    /* FIX: native <select> / <option> di Windows default putih -> teks putih jadi invisible.
+     color-scheme: dark memaksa browser pakai palette dark,
+     plus background eksplisit untuk <option> biar konsisten di Chrome/Edge/Firefox. */
+  select {
+    color-scheme: dark;
+  }
+
+  select option {
+    background-color: var(--color-spotify-elevated);
+    color: var(--color-spotify-white);
+  }
+
+  select option:checked {
+    background-color: #3e3e3e;
+    color: var(--color-spotify-white);
+  }
+
+  select option[disabled] {
+    color: var(--color-spotify-light-gray);
   }
 
   /* Thumb untuk slider progress & volume di NowPlayingBar.
