@@ -45,6 +45,18 @@ export interface Song {
   updated_at: string
 }
 
+export interface Playlist {
+  id: number
+  name: string
+  description: string
+  is_public: boolean
+  user_id: UserID
+  user?: User
+  songs?: Song[]
+  created_at: string
+  updated_at: string
+}
+
 /** Response POST /api/auth/login dan /api/auth/refresh. */
 export interface TokenPair {
   access_token: string
