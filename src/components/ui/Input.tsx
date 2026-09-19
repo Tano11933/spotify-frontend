@@ -71,7 +71,7 @@ export function Input({ label, error, hint, leftIcon, className, id, ref, type, 
             'w-full bg-transparent px-4 py-3 text-[0.9375rem] leading-none text-spotify-white caret-spotify-white outline-none',
             'placeholder:text-spotify-light-gray/50',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            leftIcon && 'pl-11',
+            leftIcon ? 'pl-11' : undefined,
             isPassword && 'pr-11',
             className,
           )}
