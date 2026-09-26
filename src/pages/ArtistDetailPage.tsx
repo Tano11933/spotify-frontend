@@ -1,6 +1,7 @@
 import { useParams } from 'react-router'
 
 import { DetailHero } from '@/components/DetailHero'
+import { LibraryToggleButton } from '@/components/LibraryToggleButton'
 import { SongRow } from '@/components/SongRow'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
 import { PlayButton } from '@/components/ui/PlayButton'
@@ -21,8 +22,9 @@ export function ArtistDetailPage() {
     () =>
       Promise.all([
         catalogApi.getArtist(artistId),
-        catalogApi.getArtistSongs(artistId),
-      ]).then(([artist, songs]) => ({ artist, songs })),
+        // limit 100 (maksimum backend) supaya seluruh lagu artist tampil.
+        catalogApi.getArtistSongs(artistId, { limit: 100 }),
+      ]).then(([artist, songs]) => ({ artist, songs: songs.items })),
     // artistId masuk deps: berpindah dari /artists/1 ke /artists/2 memakai
     // komponen yang SAMA (React Router tidak mem-unmount-nya), jadi tanpa ini
     // halaman akan tetap menampilkan artist yang lama.
@@ -50,7 +52,10 @@ export function ArtistDetailPage() {
         meta={`${songs.length} lagu`}
         action={
           firstSong && (
-            <PlayButton prominent onClick={() => play(firstSong, songs)} label={artist.name} />
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+              <PlayButton prominent onClick={() => play(firstSong, songs)} label={artist.name} />
+              <LibraryToggleButton kind="artist" id={artist.id} />
+            </div>
           )
         }
       />

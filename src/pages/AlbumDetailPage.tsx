@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router'
 
 import { DetailHero } from '@/components/DetailHero'
+import { LibraryToggleButton } from '@/components/LibraryToggleButton'
 import { SongRow } from '@/components/SongRow'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
 import { PlayButton } from '@/components/ui/PlayButton'
@@ -60,7 +61,10 @@ export function AlbumDetailPage() {
         }
         action={
           firstSong && (
-            <PlayButton prominent onClick={() => play(firstSong, songs)} label={album.title} />
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+              <PlayButton prominent onClick={() => play(firstSong, songs)} label={album.title} />
+              <LibraryToggleButton kind="album" id={album.id} />
+            </div>
           )
         }
       />

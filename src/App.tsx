@@ -11,11 +11,13 @@ import { ArtistDetailPage } from '@/pages/ArtistDetailPage'
 import { ArtistsPage } from '@/pages/ArtistsPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HomePage } from '@/pages/HomePage'
+import { LibraryPage } from '@/pages/LibraryPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
+import { SearchPage } from '@/pages/SearchPage'
 import { useAuthStore } from '@/store/authStore'
 
 export default function App() {
@@ -57,11 +59,13 @@ export default function App() {
       <Route path="/" element={<AppLayout />}>
         {/* `index` = route yang cocok saat path-nya persis sama dengan induknya. */}
         <Route index element={<HomePage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="artists" element={<ArtistsPage />} />
         <Route path="artists/:id" element={<ArtistDetailPage />} />
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="albums/:id" element={<AlbumDetailPage />} />
         <Route element={<ProtectedRoute />}>
+          <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>

@@ -28,6 +28,18 @@ const AlbumIcon = (
   </svg>
 )
 
+const SearchIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
+    <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
+  </svg>
+)
+
+const HeartIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
+    <path d="M12 21s-7.5-4.6-9.6-9.2A5.4 5.4 0 0 1 12 6.1a5.4 5.4 0 0 1 9.6 5.7C19.5 16.4 12 21 12 21Z" />
+  </svg>
+)
+
 const PlaylistIcon = (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
     <path d="M4 5h16v2H4V5Zm0 6h10v2H4v-2Zm0 6h7v2H4v-2Zm13-5v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z" />
@@ -42,6 +54,8 @@ const AdminIcon = (
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Beranda', icon: HomeIcon },
+  { to: '/search', label: 'Cari', icon: SearchIcon },
+  { to: '/library', label: 'Lagu Disukai', icon: HeartIcon },
   { to: '/artists', label: 'Artis', icon: ArtistIcon },
   { to: '/albums', label: 'Album', icon: AlbumIcon },
   { to: '/playlists', label: 'Playlist', icon: PlaylistIcon },

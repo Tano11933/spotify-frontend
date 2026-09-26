@@ -1,5 +1,7 @@
+import { LikeButton } from '@/components/LikeButton'
 import { cn } from '@/lib/cn'
 import { formatDuration } from '@/lib/format'
+import { useLikedStore } from '@/store/likedStore'
 import { usePlayerStore } from '@/store/playerStore'
 import type { Song } from '@/types'
 
@@ -12,23 +14,22 @@ interface SongRowProps {
 }
 
 /**
- * Baris lagu untuk halaman detail (album/artist) — bentuk daftar, bukan grid.
+ * Baris lagu untuk halaman detail (album/artist), pencarian, dan library —
+ * bentuk daftar, bukan grid.
  */
 export function SongRow({ song, index, queue, showArtist = true }: SongRowProps) {
   const play = usePlayerStore((state) => state.play)
   const currentSong = usePlayerStore((state) => state.currentSong)
   const isPlaying = usePlayerStore((state) => state.isPlaying)
+  const isLiked = useLikedStore((state) => state.liked[song.id] ?? false)
 
   const isCurrent = currentSong?.id === song.id
 
   return (
-    <button
-      type="button"
-      onClick={() => play(song, queue)}
+    <div
       className={cn(
-        'group grid w-full grid-cols-[2rem_1fr_auto] items-center gap-4 rounded-md px-4 py-2 text-left',
+        'group grid w-full grid-cols-[2rem_1fr_auto_2.5rem] items-center gap-3 rounded-md px-4 py-2',
         'transition-colors hover:bg-spotify-elevated',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white',
       )}
     >
       <span
@@ -47,7 +48,15 @@ export function SongRow({ song, index, queue, showArtist = true }: SongRowProps)
         )}
       </span>
 
-      <span className="min-w-0">
+      {/*
+        Tombol play membungkus judul + artist, BUKAN seluruh baris: tombol hati
+        di kanan perlu jadi tombol terpisah — tombol bersarang itu HTML invalid.
+      */}
+      <button
+        type="button"
+        onClick={() => play(song, queue)}
+        className="min-w-0 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
+      >
         <span
           className={cn(
             'block truncate text-base font-semibold',
@@ -61,13 +70,19 @@ export function SongRow({ song, index, queue, showArtist = true }: SongRowProps)
             {song.artist?.name ?? 'Artis tidak diketahui'}
           </span>
         )}
-      </span>
+      </button>
+
+      {/* Hati yang sudah disukai selalu tampak; yang belum muncul saat hover. */}
+      <LikeButton
+        songId={song.id}
+        className={isLiked ? undefined : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}
+      />
 
       {/* tabular-nums membuat lebar tiap digit sama, jadi kolom durasi tidak
           bergeser-geser antar baris. */}
-      <span className="text-sm tabular-nums text-spotify-light-gray">
+      <span className="text-right text-sm tabular-nums text-spotify-light-gray">
         {formatDuration(song.duration)}
       </span>
-    </button>
+    </div>
   )
 }

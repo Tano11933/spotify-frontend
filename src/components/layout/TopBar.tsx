@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
@@ -22,7 +22,26 @@ export function TopBar({ isScrolled }: TopBarProps) {
   const status = useAuthStore((state) => state.status)
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [term, setTerm] = useState('')
+
+  // Sinkronkan kotak pencarian dengan ?q= saat berada di halaman /search —
+  // mis. user membuka tautan hasil pencarian atau menekan tombol back.
+  const urlQuery = searchParams.get('q') ?? ''
+  useEffect(() => {
+    if (location.pathname === '/search') setTerm(urlQuery)
+  }, [location.pathname, urlQuery])
+
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const query = term.trim()
+    if (query.length < 2) return
+
+    void navigate(`/search?q=${encodeURIComponent(query)}`)
+  }
 
   async function handleLogout() {
     setIsMenuOpen(false)
@@ -62,6 +81,26 @@ export function TopBar({ isScrolled }: TopBarProps) {
           </svg>
         </button>
       </div>
+
+      {/* Kotak pencarian — di layar kecil disembunyikan; halaman /search tetap
+          bisa dibuka lewat menu navigasi. */}
+      <form
+        onSubmit={handleSearch}
+        role="search"
+        className="hidden flex-1 items-center gap-2 rounded-full bg-spotify-black-pure/70 px-4 py-2 transition-colors focus-within:bg-spotify-elevated sm:flex sm:max-w-md"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 shrink-0 text-spotify-light-gray" aria-hidden="true">
+          <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
+        </svg>
+        <input
+          type="search"
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          placeholder="Cari lagu, artist, album…"
+          aria-label="Cari"
+          className="w-full bg-transparent text-sm text-spotify-white placeholder:text-spotify-light-gray/70 focus:outline-none"
+        />
+      </form>
 
       {/*
         Selama status masih 'idle'/'bootstrapping', tidak ada tombol yang
