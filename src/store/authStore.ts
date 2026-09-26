@@ -72,6 +72,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ status: 'bootstrapping' })
 
     try {
+      // Tukar refresh token DULU, baru panggil /auth/me dengan access token
+      // yang baru. Urutan ini menghindari satu request /auth/me yang pasti
+      // 401 (access token hanya hidup di memori dan hilang saat reload) —
+      // 401 itu tidak salah, tapi mengotori console dan menambah round-trip.
+      const tokens = await authApi.refresh(get().refreshToken!)
+      get().setTokens(tokens)
+
       const user = await authApi.me()
       set({ user, status: 'authenticated' })
     } catch {
