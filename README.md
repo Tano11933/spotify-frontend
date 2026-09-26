@@ -36,8 +36,9 @@ bukan memakai logo/nama pihak lain.
   (pesan error berbahasa Indonesia), dengan halaman reset yang dibuka dari
   tautan email.
 - **Sesi bertahan saat refresh**: access token disimpan di memori (tidak di
-  localStorage), refresh token di localStorage; sesi dipulihkan sekali saat
-  aplikasi dibuka lewat `GET /api/auth/me`.
+  localStorage), refresh token di localStorage; saat aplikasi dibuka, refresh
+  token ditukar lebih dulu baru `GET /api/auth/me` — tanpa request 401 yang
+  tidak perlu.
 - **Auto-refresh 401**: interceptor Axios menukar refresh token lalu mengulang
   request yang gagal. Ada penjaga *single-flight* — tiga request yang balas 401
   bersamaan hanya memicu **satu** panggilan refresh, sisanya antre (ini bisa
@@ -65,6 +66,17 @@ bukan memakai logo/nama pihak lain.
   <img src="docs/screenshots/album-detail.png" width="49%" alt="Detail album" />
 </p>
 
+### Pencarian
+
+- Kotak pencarian di top bar (halaman `/search`), hasil dikelompokkan per tipe:
+  **Lagu, Artis, Album, Playlist** — grup yang kosong tidak ditampilkan.
+- Backend menangani pencocokan kata penuh, substring, dan kemiripan (tahan
+  typo) sekaligus; frontend cukup mengirim `?q=` dan menampilkan hasilnya.
+- Query minimal 2 karakter — dicek di frontend (tidak ada request sia-sia)
+  dan di backend.
+
+![Halaman pencarian](docs/screenshots/search.png)
+
 ### Pemutar lagu
 
 - **Now Playing bar** dengan kontrol play/pause, next/previous, seek, dan
@@ -90,6 +102,17 @@ bukan memakai logo/nama pihak lain.
   <img src="docs/screenshots/playlists.png" width="49%" alt="Daftar playlist" />
   <img src="docs/screenshots/playlist-detail.png" width="49%" alt="Detail playlist" />
 </p>
+
+### Library (perlu login)
+
+- **Lagu Disukai**: ikon hati di kartu lagu dan baris lagu — status diambil
+  sekali secara **batch** lewat endpoint `contains` (satu request untuk semua
+  id yang tampil), lalu di-toggle optimistic tanpa menunggu server.
+- **Album tersimpan & artist diikuti**: tombol Simpan/Ikuti di halaman detail
+  album dan artist.
+- Halaman `/library` dengan tiga tab: Lagu Disukai, Album, Artis.
+
+![Halaman library](docs/screenshots/library.png)
 
 ### Dashboard admin
 
@@ -173,8 +196,10 @@ Aturan yang dipegang:
 | Path | Halaman | Akses |
 |---|---|---|
 | `/` | Beranda (sapaan + katalog) | 🌐 publik |
+| `/search?q=` | Pencarian lintas tipe (lagu/artis/album/playlist) | 🌐 publik |
 | `/artists`, `/albums` | Daftar artist / album | 🌐 publik |
 | `/artists/:id`, `/albums/:id` | Detail artist / album | 🌐 publik |
+| `/library` | Lagu Disukai, album tersimpan, artist diikuti | 🔒 login |
 | `/playlists` | Playlist milik user + playlist publik | 🔒 login |
 | `/admin` | Kelola katalog | 👑 admin |
 | `/login`, `/register`, `/forgot-password` | Alur autentikasi | hanya tamu |
@@ -305,5 +330,6 @@ npm run build         # build produksi
   di `DOCKER.md`
 - Test otomatis frontend (belum ada test runner; type-check + lint masih
   menjadi penjaga utama)
-- Pencarian dan pagination katalog — backend belum menyediakan endpointnya
+- Pagination UI — halaman list masih memuat sampai 100 item sekaligus
+  (tombol "muat lagi" menyusul saat katalog membesar)
 - Virtualisasi daftar lagu untuk katalog besar
