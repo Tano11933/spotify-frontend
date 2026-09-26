@@ -76,7 +76,35 @@ export interface MessageResponse {
   message: string
 }
 
-/** Bentuk error yang KONSISTEN di seluruh backend: {"error": "pesan singkat"}. */
+/** Envelope pagination — bentuk response semua endpoint list backend. */
+export interface Page<T> {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
+/** Satu kesalahan validasi dari backend (`details` pada response 400). */
+export interface FieldError {
+  field: string
+  rule: string
+}
+
+/**
+ * Bentuk error backend: {"error": "...", "code": "..."} — `code` machine-readable
+ * (VALIDATION_FAILED, UNAUTHORIZED, NOT_FOUND, dst) dan `details` hanya ada
+ * untuk kegagalan validasi.
+ */
 export interface ApiErrorResponse {
   error: string
+  code?: string
+  details?: FieldError[]
+}
+
+/** Hasil GET /api/search — grup yang tidak diminta tidak dikirim backend. */
+export interface SearchResults {
+  tracks?: Page<Song>
+  artists?: Page<Artist>
+  albums?: Page<Album>
+  playlists?: Page<Playlist>
 }

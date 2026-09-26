@@ -5,12 +5,15 @@ import { useAsync } from '@/hooks/useAsync'
 import { catalogApi } from '@/lib/api'
 
 export function AlbumsPage() {
-  const { data, error, isLoading, reload } = useAsync(() => catalogApi.getAlbums(), [])
+  const { data, error, isLoading, reload } = useAsync(
+    () => catalogApi.getAlbums({ limit: 100 }),
+    [],
+  )
 
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error} onRetry={reload} />
 
-  const albums = data ?? []
+  const albums = data?.items ?? []
 
   return (
     <div className="pt-4">

@@ -29,13 +29,13 @@ export function PlaylistsPage() {
     setError(null)
     try {
       const [owned, shared, catalog] = await Promise.all([
-        playlistApi.getMine(),
-        playlistApi.getPublic(),
-        catalogApi.getSongs(),
+        playlistApi.getMine({ limit: 100 }),
+        playlistApi.getPublic({ limit: 100 }),
+        catalogApi.getSongs({ limit: 100 }),
       ])
-      setMine(owned)
-      setPublicPlaylists(shared)
-      setSongs(catalog)
+      setMine(owned.items)
+      setPublicPlaylists(shared.items)
+      setSongs(catalog.items)
     } catch (loadError) {
       setError(getApiErrorMessage(loadError))
     } finally {

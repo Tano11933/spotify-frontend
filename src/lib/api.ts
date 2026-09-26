@@ -11,7 +11,9 @@ import type {
   Artist,
   AuthResponse,
   MessageResponse,
+  Page,
   Playlist,
+  SearchResults,
   Song,
   TokenPair,
   User,
@@ -153,6 +155,11 @@ export const authApi = {
   login: (payload: { email: string; password: string }) =>
     api.post<AuthResponse>('/auth/login', payload).then((res) => res.data),
 
+  refresh: (refreshToken: string) =>
+    api
+      .post<TokenPair>('/auth/refresh', { refresh_token: refreshToken })
+      .then((res) => res.data),
+
   logout: () => api.post<MessageResponse>('/auth/logout').then((res) => res.data),
 
   me: () => api.get<User>('/auth/me').then((res) => res.data),
@@ -164,22 +171,38 @@ export const authApi = {
     api.post<MessageResponse>('/auth/reset-password', payload).then((res) => res.data),
 }
 
-export const catalogApi = {
-  getArtists: () => api.get<Artist[]>('/artists').then((res) => res.data),
-  getArtist: (id: number) => api.get<Artist>(`/artists/${id}`).then((res) => res.data),
-  getArtistSongs: (id: number) =>
-    api.get<Song[]>(`/artists/${id}/songs`).then((res) => res.data),
+/** Parameter pagination standar backend (default limit 20, maks 100). */
+export interface ListParams {
+  limit?: number
+  offset?: number
+}
 
-  getAlbums: () => api.get<Album[]>('/albums').then((res) => res.data),
+export const catalogApi = {
+  getArtists: (params?: ListParams) =>
+    api.get<Page<Artist>>('/artists', { params }).then((res) => res.data),
+  getArtist: (id: number) => api.get<Artist>(`/artists/${id}`).then((res) => res.data),
+  getArtistSongs: (id: number, params?: ListParams) =>
+    api.get<Page<Song>>(`/artists/${id}/songs`, { params }).then((res) => res.data),
+
+  getAlbums: (params?: ListParams) =>
+    api.get<Page<Album>>('/albums', { params }).then((res) => res.data),
   getAlbum: (id: number) => api.get<Album>(`/albums/${id}`).then((res) => res.data),
 
-  getSongs: () => api.get<Song[]>('/songs').then((res) => res.data),
+  getSongs: (params?: ListParams) =>
+    api.get<Page<Song>>('/songs', { params }).then((res) => res.data),
   getSong: (id: number) => api.get<Song>(`/songs/${id}`).then((res) => res.data),
 }
 
+export const searchApi = {
+  search: (params: { q: string; type?: string } & ListParams) =>
+    api.get<SearchResults>('/search', { params }).then((res) => res.data),
+}
+
 export const playlistApi = {
-  getMine: () => api.get<Playlist[]>('/playlists').then((res) => res.data),
-  getPublic: () => api.get<Playlist[]>('/playlists/public').then((res) => res.data),
+  getMine: (params?: ListParams) =>
+    api.get<Page<Playlist>>('/playlists', { params }).then((res) => res.data),
+  getPublic: (params?: ListParams) =>
+    api.get<Page<Playlist>>('/playlists/public', { params }).then((res) => res.data),
   getById: (id: number) => api.get<Playlist>(`/playlists/${id}`).then((res) => res.data),
   create: (payload: { name: string; description: string; is_public: boolean }) =>
     api.post<Playlist>('/playlists', payload).then((res) => res.data),
@@ -190,6 +213,46 @@ export const playlistApi = {
     api.post<MessageResponse>(`/playlists/${id}/songs`, { song_id: songId }).then((res) => res.data),
   removeSong: (id: number, songId: number) =>
     api.delete<MessageResponse>(`/playlists/${id}/songs/${songId}`).then((res) => res.data),
+}
+
+/**
+ * Pustaka pribadi user. Endpoint `contains` menerima daftar id (maks 100) dan
+ * mengembalikan map id→boolean — dipakai untuk menyalakan ikon hati tanpa
+ * satu request per item.
+ */
+export const libraryApi = {
+  getTracks: (params?: ListParams) =>
+    api.get<Page<Song>>('/me/tracks', { params }).then((res) => res.data),
+  saveTrack: (songId: number) =>
+    api.put<MessageResponse>(`/me/tracks/${songId}`).then((res) => res.data),
+  removeTrack: (songId: number) =>
+    api.delete<MessageResponse>(`/me/tracks/${songId}`).then((res) => res.data),
+  tracksContain: (ids: number[]) =>
+    api
+      .get<Record<string, boolean>>('/me/tracks/contains', { params: { ids: ids.join(',') } })
+      .then((res) => res.data),
+
+  getAlbums: (params?: ListParams) =>
+    api.get<Page<Album>>('/me/albums', { params }).then((res) => res.data),
+  saveAlbum: (albumId: number) =>
+    api.put<MessageResponse>(`/me/albums/${albumId}`).then((res) => res.data),
+  removeAlbum: (albumId: number) =>
+    api.delete<MessageResponse>(`/me/albums/${albumId}`).then((res) => res.data),
+  albumsContain: (ids: number[]) =>
+    api
+      .get<Record<string, boolean>>('/me/albums/contains', { params: { ids: ids.join(',') } })
+      .then((res) => res.data),
+
+  getFollowing: (params?: ListParams) =>
+    api.get<Page<Artist>>('/me/following', { params }).then((res) => res.data),
+  followArtist: (artistId: number) =>
+    api.put<MessageResponse>(`/me/following/${artistId}`).then((res) => res.data),
+  unfollowArtist: (artistId: number) =>
+    api.delete<MessageResponse>(`/me/following/${artistId}`).then((res) => res.data),
+  followingContain: (ids: number[]) =>
+    api
+      .get<Record<string, boolean>>('/me/following/contains', { params: { ids: ids.join(',') } })
+      .then((res) => res.data),
 }
 
 export const adminApi = {

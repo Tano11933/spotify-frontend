@@ -6,13 +6,17 @@ import { catalogApi } from '@/lib/api'
 
 export function ArtistsPage() {
   // Endpoint ini di-cache Redis 5 menit di backend (PRD.md §5.3), jadi
-  // pemanggilan berulang tidak menyentuh Postgres.
-  const { data, error, isLoading, reload } = useAsync(() => catalogApi.getArtists(), [])
+  // pemanggilan berulang tidak menyentuh Postgres. limit=100 (maksimum
+  // backend) supaya seluruh katalog tampil tanpa UI pagination.
+  const { data, error, isLoading, reload } = useAsync(
+    () => catalogApi.getArtists({ limit: 100 }),
+    [],
+  )
 
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error} onRetry={reload} />
 
-  const artists = data ?? []
+  const artists = data?.items ?? []
 
   return (
     <div className="pt-4">

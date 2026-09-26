@@ -34,13 +34,13 @@ export function AdminPage() {
     setError(null)
     try {
       const [nextArtists, nextAlbums, nextSongs] = await Promise.all([
-        catalogApi.getArtists(),
-        catalogApi.getAlbums(),
-        catalogApi.getSongs(),
+        catalogApi.getArtists({ limit: 100 }),
+        catalogApi.getAlbums({ limit: 100 }),
+        catalogApi.getSongs({ limit: 100 }),
       ])
-      setArtists(nextArtists)
-      setAlbums(nextAlbums)
-      setSongs(nextSongs)
+      setArtists(nextArtists.items)
+      setAlbums(nextAlbums.items)
+      setSongs(nextSongs.items)
     } catch (loadError) {
       setError(getApiErrorMessage(loadError))
     } finally {

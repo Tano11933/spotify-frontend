@@ -16,8 +16,10 @@ export function HomePage() {
 
   /**
    * Promise.all menembakkan ketiga request BERSAMAAN, bukan berurutan.
-   * Kalau ditulis dengan tiga `await` beruntun, total waktunya adalah jumlah
-   * ketiganya; dengan Promise.all, totalnya sepanjang yang paling lambat saja.
+   *
+   * limit diisi sesuai kebutuhan section: artist & album hanya untuk preview
+   * (5 kartu), lagu satu halaman penuh. `total` dari envelope dipakai untuk
+   * memutuskan apakah tautan "Lihat semua" perlu tampil.
    *
    * Ini juga skenario yang menguji single-flight di interceptor: ketiganya bisa
    * balik 401 hampir bersamaan saat access token kedaluwarsa, dan hanya boleh
@@ -25,9 +27,11 @@ export function HomePage() {
    */
   const { data, error, isLoading, reload } = useAsync(
     () =>
-      Promise.all([catalogApi.getArtists(), catalogApi.getAlbums(), catalogApi.getSongs()]).then(
-        ([artists, albums, songs]) => ({ artists, albums, songs }),
-      ),
+      Promise.all([
+        catalogApi.getArtists({ limit: PREVIEW_LIMIT }),
+        catalogApi.getAlbums({ limit: PREVIEW_LIMIT }),
+        catalogApi.getSongs({ limit: 20 }),
+      ]).then(([artists, albums, songs]) => ({ artists, albums, songs })),
     [],
   )
 
@@ -36,7 +40,7 @@ export function HomePage() {
   if (!data) return null
 
   const { artists, albums, songs } = data
-  const isCatalogEmpty = artists.length === 0 && albums.length === 0 && songs.length === 0
+  const isCatalogEmpty = artists.total === 0 && albums.total === 0 && songs.total === 0
 
   return (
     <div className="pt-4">
@@ -49,34 +53,34 @@ export function HomePage() {
         <EmptyState message="Katalog masih kosong. Tambahkan artist, album, atau lagu lewat endpoint admin di backend." />
       ) : (
         <>
-          {artists.length > 0 && (
+          {artists.items.length > 0 && (
             <SectionGrid
               title="Artis populer"
-              seeAllTo={artists.length > PREVIEW_LIMIT ? '/artists' : undefined}
+              seeAllTo={artists.total > artists.items.length ? '/artists' : undefined}
             >
-              {artists.slice(0, PREVIEW_LIMIT).map((artist) => (
+              {artists.items.map((artist) => (
                 <ArtistCard key={artist.id} artist={artist} />
               ))}
             </SectionGrid>
           )}
 
-          {albums.length > 0 && (
+          {albums.items.length > 0 && (
             <SectionGrid
               title="Album terbaru"
-              seeAllTo={albums.length > PREVIEW_LIMIT ? '/albums' : undefined}
+              seeAllTo={albums.total > albums.items.length ? '/albums' : undefined}
             >
-              {albums.slice(0, PREVIEW_LIMIT).map((album) => (
+              {albums.items.map((album) => (
                 <AlbumCard key={album.id} album={album} />
               ))}
             </SectionGrid>
           )}
 
-          {songs.length > 0 && (
+          {songs.items.length > 0 && (
             <SectionGrid title="Semua lagu">
-              {songs.map((song) => (
+              {songs.items.map((song) => (
                 // queue diisi seluruh daftar lagu, jadi tombol next/previous di
                 // now-playing bar bergerak menyusuri grid ini.
-                <SongCard key={song.id} song={song} queue={songs} />
+                <SongCard key={song.id} song={song} queue={songs.items} />
               ))}
             </SectionGrid>
           )}
