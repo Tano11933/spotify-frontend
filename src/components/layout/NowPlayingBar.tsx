@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 
+import { streamUrl } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { formatDuration } from '@/lib/format'
 import { usePlayerStore } from '@/store/playerStore'
@@ -34,7 +36,9 @@ export function NowPlayingBar() {
     if (!audio || !currentSong) return
 
     setAudioUnavailable(false)
-    audio.src = currentSong.file_url
+    // Endpoint stream mendukung Range (seek) dan mengalihkan ke file_url untuk
+    // lagu seeder, jadi satu URL ini berlaku untuk audio unggahan maupun demo.
+    audio.src = streamUrl(currentSong.id)
     audio.currentTime = 0
     audio.load()
   }, [currentSong])
@@ -209,28 +213,41 @@ export function NowPlayingBar() {
         </div>
       </div>
 
-      {/* Kolom kanan: volume — disembunyikan di layar kecil (DESIGN.md §6) */}
-      <div className="hidden flex-1 items-center justify-end gap-2 md:flex">
-        <svg
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="h-5 w-5 text-spotify-light-gray"
-          aria-hidden="true"
+      {/* Kolom kanan: antrean (selalu tampil) + volume (layar sedang ke atas). */}
+      <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
+        <Link
+          to="/queue"
+          aria-label="Antrean"
+          title="Antrean"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-spotify-light-gray transition-colors hover:bg-white/10 hover:text-spotify-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white md:h-9 md:w-9"
         >
-          <path d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12Z" />
-        </svg>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={Math.round(volume * 100)}
-          onChange={(event) => setVolume(Number(event.target.value) / 100)}
-          aria-label="Volume"
-          className="h-1 w-24 cursor-pointer appearance-none rounded-full"
-          style={{
-            background: `linear-gradient(to right, var(--color-spotify-white) ${volume * 100}%, var(--color-spotify-border) ${volume * 100}%)`,
-          }}
-        />
+          <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+            <path d="M4 6h16v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-3v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z" />
+          </svg>
+        </Link>
+
+        <div className="hidden items-center gap-2 md:flex">
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="h-5 w-5 text-spotify-light-gray"
+            aria-hidden="true"
+          >
+            <path d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12Z" />
+          </svg>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(volume * 100)}
+            onChange={(event) => setVolume(Number(event.target.value) / 100)}
+            aria-label="Volume"
+            className="h-1 w-24 cursor-pointer appearance-none rounded-full"
+            style={{
+              background: `linear-gradient(to right, var(--color-spotify-white) ${volume * 100}%, var(--color-spotify-border) ${volume * 100}%)`,
+            }}
+          />
+        </div>
       </div>
     </footer>
   )

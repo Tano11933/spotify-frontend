@@ -108,3 +108,16 @@ export interface SearchResults {
   albums?: Page<Album>
   playlists?: Page<Playlist>
 }
+
+/** State pemutaran dari server. `song` null berarti user belum pernah memutar. */
+export interface PlayerState {
+  song: Song | null
+  position_seconds: number
+  updated_at?: string
+}
+
+/** Satu entri riwayat putar dari GET /api/me/history. */
+export interface HistoryEntry {
+  played_at: string
+  song: Song
+}

@@ -10,8 +10,10 @@ import type {
   ApiErrorResponse,
   Artist,
   AuthResponse,
+  HistoryEntry,
   MessageResponse,
   Page,
+  PlayerState,
   Playlist,
   SearchResults,
   Song,
@@ -253,6 +255,37 @@ export const libraryApi = {
     api
       .get<Record<string, boolean>>('/me/following/contains', { params: { ids: ids.join(',') } })
       .then((res) => res.data),
+}
+
+/** URL streaming audio, dipakai elemen <audio>. Endpointnya publik dan mendukung Range. */
+export function streamUrl(songId: number): string {
+  return `${env.VITE_API_BASE_URL}/api/stream/songs/${songId}`
+}
+
+/**
+ * Playback state di server: resume lintas device, antrean, dan riwayat.
+ *
+ * `play` berbeda dari `updateState`: hanya `play` yang mencatat riwayat dan
+ * menaikkan play_count, sedangkan `updateState` sekadar menyimpan posisi.
+ */
+export const playerApi = {
+  getState: () => api.get<PlayerState>('/me/player').then((res) => res.data),
+
+  updateState: (payload: { song_id: number; position_seconds: number }) =>
+    api.put<PlayerState>('/me/player', payload).then((res) => res.data),
+
+  play: (songId: number) =>
+    api.post<PlayerState>('/me/player/play', { song_id: songId }).then((res) => res.data),
+
+  getQueue: (params?: ListParams) =>
+    api.get<Page<Song>>('/me/player/queue', { params }).then((res) => res.data),
+  addToQueue: (songId: number) =>
+    api.post<MessageResponse>('/me/player/queue', { song_id: songId }).then((res) => res.data),
+  removeFromQueue: (songId: number) =>
+    api.delete<MessageResponse>(`/me/player/queue/${songId}`).then((res) => res.data),
+
+  getHistory: (params?: ListParams) =>
+    api.get<Page<HistoryEntry>>('/me/history', { params }).then((res) => res.data),
 }
 
 export const adminApi = {

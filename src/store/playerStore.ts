@@ -25,6 +25,8 @@ interface PlayerState {
   audioElement: HTMLAudioElement | null
 
   play: (song: Song, queue?: Song[]) => void
+  /** Memulihkan lagu & posisi dari server, dalam keadaan pause. */
+  restore: (song: Song, position: number) => void
   togglePlay: () => void
   next: () => void
   previous: () => void
@@ -52,6 +54,15 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       queue: queue && queue.length > 0 ? queue : [song],
       isPlaying: true,
       progress: 0,
+    }),
+
+  /** Memulihkan lagu & posisi terakhir dari server, dalam keadaan pause. */
+  restore: (song, position) =>
+    set({
+      currentSong: song,
+      queue: [song],
+      isPlaying: false,
+      progress: Math.max(0, Math.min(position, song.duration)),
     }),
 
   togglePlay: () => {

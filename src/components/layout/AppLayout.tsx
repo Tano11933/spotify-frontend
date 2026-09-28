@@ -5,6 +5,7 @@ import { ToastContainer } from '@/components/Toast'
 import { MobileNav, Sidebar } from '@/components/layout/Sidebar'
 import { NowPlayingBar } from '@/components/layout/NowPlayingBar'
 import { TopBar } from '@/components/layout/TopBar'
+import { usePlayerSync } from '@/hooks/usePlayerSync'
 import { useRealtime } from '@/hooks/useRealtime'
 
 /**
@@ -28,6 +29,10 @@ export function AppLayout() {
 
   // Satu-satunya pemanggilan hook realtime di seluruh aplikasi.
   useRealtime()
+
+  // Sinkronisasi pemutar dengan server: resume posisi, progres berkala, dan
+  // posisi terakhir saat tab ditutup.
+  usePlayerSync()
 
   return (
     // h-screen + overflow-hidden mengunci layout agar hanya area konten yang
