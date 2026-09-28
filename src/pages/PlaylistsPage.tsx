@@ -110,7 +110,7 @@ export function PlaylistsPage() {
     <div className="space-y-8 pt-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-spotify-white md:text-5xl">Playlist</h1>
-        <p className="mt-2 text-[0.9375rem] leading-relaxed text-spotify-light-gray">Koleksi lagu untuk setiap suasana — pribadi atau dibagikan.</p>
+        <p className="mt-2 text-[0.9375rem] leading-relaxed text-spotify-light-gray">Koleksi lagu untuk setiap suasana, pribadi atau dibagikan.</p>
       </div>
 
       {error && (
@@ -254,7 +254,7 @@ export function PlaylistsPage() {
                     .filter((song) => !selectedSongs.some((item) => item.id === song.id))
                     .map((song) => (
                       <option key={song.id} value={song.id}>
-                        {song.title} — {song.artist?.name ?? ''}
+                        {song.title} • {song.artist?.name ?? ''}
                       </option>
                     ))}
                 </Select>
