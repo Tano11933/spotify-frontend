@@ -80,15 +80,26 @@ bukan memakai logo/nama pihak lain.
 ### Pemutar lagu
 
 - **Now Playing bar** dengan kontrol play/pause, next/previous, seek, dan
-  volume. Progress diambil dari elemen `<audio>` sungguhan; kalau file audio
-  gagal dimuat (URL demo dari seeder), pemutaran jatuh ke mode simulasi agar
-  UI tidak ikut mati.
-- **Queue**: memutar lagu dari sebuah daftar menjadikan daftar itu antrean —
-  next/previous menyusuri album/playlist, berputar kembali ke awal setelah
-  lagu terakhir.
+  volume. Audio diambil dari `GET /api/stream/songs/:id` yang mendukung
+  **HTTP Range**, jadi seek bekerja untuk berkas unggahan maupun URL demo;
+  kalau audio gagal dimuat, pemutaran jatuh ke mode simulasi agar UI tidak
+  ikut mati.
+- **Playback state di server**: posisi tersimpan saat pause, berkala selama
+  memutar, dan saat tab ditutup. Membuka aplikasi lagi memulihkan lagu
+  terakhir dalam keadaan pause, siap dilanjutkan dari device mana pun.
+- **Pencatatan pemutaran**: lagu yang mulai diputar dikirim ke
+  `POST /api/me/player/play`, yang mencatat riwayat, menaikkan `play_count`,
+  dan menyiarkan event ke client lain lewat WebSocket.
+- **Antrean berikutnya** (halaman `/queue`): ikon daftar di baris lagu
+  menambahkan lagu ke antrean server; halaman antrean bisa memutar dan
+  menghapus isinya.
+- **Queue pemutar**: memutar lagu dari sebuah daftar menjadikan daftar itu
+  antrean lokal; next/previous menyusuri album/playlist, berputar kembali ke
+  awal setelah lagu terakhir.
 - Perilaku khas pemutar musik: menekan **previous setelah >3 detik** mengulang
   lagu yang sedang berjalan, bukan pindah lagu.
-- Lagu yang sedang diputar diberi warna hijau + ikon speaker di daftar lagu.
+
+![Halaman antrean](docs/screenshots/queue.png)
 
 ### Playlist (perlu login)
 
@@ -110,9 +121,13 @@ bukan memakai logo/nama pihak lain.
   id yang tampil), lalu di-toggle optimistic tanpa menunggu server.
 - **Album tersimpan & artist diikuti**: tombol Simpan/Ikuti di halaman detail
   album dan artist.
-- Halaman `/library` dengan tiga tab: Lagu Disukai, Album, Artis.
+- Halaman `/library` dengan empat tab: Lagu Disukai, Album, Artis, dan
+  **Riwayat** (lagu yang terakhir diputar, lengkap dengan waktunya).
 
-![Halaman library](docs/screenshots/library.png)
+<p align="center">
+  <img src="docs/screenshots/library.png" width="49%" alt="Lagu Disukai" />
+  <img src="docs/screenshots/history.png" width="49%" alt="Riwayat putar" />
+</p>
 
 ### Dashboard admin
 
@@ -200,6 +215,7 @@ Aturan yang dipegang:
 | `/artists`, `/albums` | Daftar artist / album | 🌐 publik |
 | `/artists/:id`, `/albums/:id` | Detail artist / album | 🌐 publik |
 | `/library` | Lagu Disukai, album tersimpan, artist diikuti | 🔒 login |
+| `/queue` | Antrean berikutnya (tersimpan di server) | 🔒 login |
 | `/playlists` | Playlist milik user + playlist publik | 🔒 login |
 | `/admin` | Kelola katalog | 👑 admin |
 | `/login`, `/register`, `/forgot-password` | Alur autentikasi | hanya tamu |
