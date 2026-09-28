@@ -15,6 +15,7 @@ import { LibraryPage } from '@/pages/LibraryPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
+import { QueuePage } from '@/pages/QueuePage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SearchPage } from '@/pages/SearchPage'
@@ -67,6 +68,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
+          <Route path="queue" element={<QueuePage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
 

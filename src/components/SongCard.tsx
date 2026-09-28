@@ -33,13 +33,13 @@ export function SongCard({ song, queue }: SongCardProps) {
               label={song.title}
               isPlaying={isCurrent && isPlaying}
             />
-            {/* Hati di pojok cover: selalu tampak kalau disukai, muncul saat
-                hover kalau belum. */}
+            {/* Hati di pojok cover: hijau kalau disukai; di desktop muncul saat
+                hover, di layar sentuh selalu tampak. */}
             <LikeButton
               songId={song.id}
               className={cn(
                 'absolute right-2 top-2 bg-spotify-black-pure/60',
-                isLiked ? undefined : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+                isLiked ? undefined : 'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100',
               )}
             />
           </>

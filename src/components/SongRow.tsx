@@ -1,3 +1,4 @@
+import { AddToQueueButton } from '@/components/AddToQueueButton'
 import { LikeButton } from '@/components/LikeButton'
 import { cn } from '@/lib/cn'
 import { formatDuration } from '@/lib/format'
@@ -28,7 +29,7 @@ export function SongRow({ song, index, queue, showArtist = true }: SongRowProps)
   return (
     <div
       className={cn(
-        'group grid w-full grid-cols-[2rem_1fr_auto_2.5rem] items-center gap-3 rounded-md px-4 py-2',
+        'group grid w-full grid-cols-[2rem_1fr_auto_auto_2.5rem] items-center gap-3 rounded-md px-4 py-2',
         'transition-colors hover:bg-spotify-elevated',
       )}
     >
@@ -72,10 +73,20 @@ export function SongRow({ song, index, queue, showArtist = true }: SongRowProps)
         )}
       </button>
 
-      {/* Hati yang sudah disukai selalu tampak; yang belum muncul saat hover. */}
+      {/*
+        Aksi lagu: hati + antrean. Di layar sentuh keduanya selalu tampak
+        (tidak ada hover), di desktop baru muncul saat baris di-hover/fokus.
+        Hati yang sudah disukai selalu hijau.
+      */}
       <LikeButton
         songId={song.id}
-        className={isLiked ? undefined : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}
+        className={isLiked ? undefined : 'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100'}
+      />
+
+      <AddToQueueButton
+        songId={song.id}
+        title={song.title}
+        className="md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
       />
 
       {/* tabular-nums membuat lebar tiap digit sama, jadi kolom durasi tidak
