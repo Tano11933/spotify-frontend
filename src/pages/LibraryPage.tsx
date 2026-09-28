@@ -7,10 +7,12 @@ import { SongRow } from '@/components/SongRow'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
 import { useAsync } from '@/hooks/useAsync'
 import { cn } from '@/lib/cn'
-import { libraryApi } from '@/lib/api'
-import type { Album, Artist, Song } from '@/types'
+import { libraryApi, playerApi } from '@/lib/api'
+import { formatRelativeTime } from '@/lib/format'
+import { usePlayerStore } from '@/store/playerStore'
+import type { Album, Artist, HistoryEntry, Song } from '@/types'
 
-type LibraryTab = 'tracks' | 'albums' | 'artists'
+type LibraryTab = 'tracks' | 'albums' | 'artists' | 'history'
 
 /**
  * Bentuk data per tab — discriminated union supaya TypeScript bisa
@@ -20,11 +22,13 @@ type LibraryData =
   | { tab: 'tracks'; songs: Song[] }
   | { tab: 'albums'; albums: Album[] }
   | { tab: 'artists'; artists: Artist[] }
+  | { tab: 'history'; entries: HistoryEntry[] }
 
 const TABS: Array<{ id: LibraryTab; label: string }> = [
   { id: 'tracks', label: 'Lagu Disukai' },
   { id: 'albums', label: 'Album' },
   { id: 'artists', label: 'Artis' },
+  { id: 'history', label: 'Riwayat' },
 ]
 
 /**
@@ -48,6 +52,11 @@ export function LibraryPage() {
         return libraryApi
           .getFollowing({ limit: 100 })
           .then((page) => ({ tab: 'artists' as const, artists: page.items }))
+      }
+      if (tab === 'history') {
+        return playerApi
+          .getHistory({ limit: 100 })
+          .then((page) => ({ tab: 'history' as const, entries: page.items }))
       }
       return libraryApi
         .getTracks({ limit: 100 })
@@ -122,6 +131,54 @@ export function LibraryPage() {
             ))}
           </SectionGrid>
         ))}
+
+      {data.tab === 'history' &&
+        (data.entries.length === 0 ? (
+          <EmptyState message="Belum ada riwayat putar. Putar lagu mana pun, riwayatnya muncul di sini." />
+        ) : (
+          <HistoryList entries={data.entries} />
+        ))}
     </div>
+  )
+}
+
+/**
+ * Daftar riwayat: lagu + kapan terakhir diputar. Barisnya kustom karena
+ * SongRow tidak punya kolom waktu.
+ */
+function HistoryList({ entries }: { entries: HistoryEntry[] }) {
+  const play = usePlayerStore((state) => state.play)
+  const queue = entries.map((entry) => entry.song)
+
+  return (
+    <ul className="divide-y divide-white/[0.06] rounded-lg border border-white/[0.06] bg-spotify-black/40">
+      {entries.map((entry, index) => (
+        <li
+          key={`${entry.song.id}-${entry.played_at}-${index}`}
+          className="group flex items-center gap-3 px-4 py-3.5"
+        >
+          <span className="w-6 text-right text-xs tabular-nums text-spotify-light-gray/60">
+            {index + 1}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => play(entry.song, queue)}
+            className="min-w-0 flex-1 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
+          >
+            <span className="block truncate text-sm font-semibold text-spotify-white group-hover:text-spotify-green">
+              {entry.song.title}
+            </span>
+            <span className="block truncate text-xs text-spotify-light-gray">
+              {entry.song.artist?.name ?? 'Artis tidak diketahui'}
+            </span>
+          </button>
+
+          <span className="shrink-0 text-xs text-spotify-light-gray">
+            {formatRelativeTime(entry.played_at)}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }

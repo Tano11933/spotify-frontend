@@ -16,7 +16,22 @@ export function formatDuration(totalSeconds: number): string {
 /** Mengambil tahun dari timestamp RFC3339 milik backend. */
 export function formatYear(isoDate: string): string {
   const date = new Date(isoDate)
-  return Number.isNaN(date.getTime()) ? '—' : String(date.getFullYear())
+  return Number.isNaN(date.getTime()) ? '-' : String(date.getFullYear())
+}
+
+/**
+ * Waktu relatif untuk riwayat putar: "baru saja", "12 menit lalu", "3 jam lalu".
+ * Lebih mudah dibaca sekilas daripada timestamp penuh di dalam daftar.
+ */
+export function formatRelativeTime(isoDate: string, now: Date = new Date()): string {
+  const date = new Date(isoDate)
+  if (Number.isNaN(date.getTime())) return 'Waktu tidak diketahui'
+
+  const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000)
+  if (diffSeconds < 60) return 'baru saja'
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} menit lalu`
+  if (diffSeconds < 86_400) return `${Math.floor(diffSeconds / 3600)} jam lalu`
+  return `${Math.floor(diffSeconds / 86_400)} hari lalu`
 }
 
 /**
