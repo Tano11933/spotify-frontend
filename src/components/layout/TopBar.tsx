@@ -130,6 +130,14 @@ export function TopBar({ isScrolled }: TopBarProps) {
               className="absolute right-0 z-40 mt-2 w-48 rounded-md border border-spotify-border bg-spotify-elevated py-1 shadow-lg"
             >
               <p className="truncate px-4 py-2 text-xs text-spotify-light-gray">{user.email}</p>
+              <Link
+                to={`/users/${user.id}`}
+                role="menuitem"
+                onClick={() => setIsMenuOpen(false)}
+                className="block w-full px-4 py-2 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border"
+              >
+                Profil saya
+              </Link>
               <button
                 type="button"
                 role="menuitem"

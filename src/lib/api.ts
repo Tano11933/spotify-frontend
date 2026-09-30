@@ -15,10 +15,13 @@ import type {
   Page,
   PlayerState,
   Playlist,
+  PublicProfile,
+  PublicUser,
   SearchResults,
   Song,
   TokenPair,
   User,
+  UserID,
 } from '@/types'
 
 export const api = axios.create({
@@ -260,6 +263,26 @@ export const libraryApi = {
 /** URL streaming audio, dipakai elemen <audio>. Endpointnya publik dan mendukung Range. */
 export function streamUrl(songId: number): string {
   return `${env.VITE_API_BASE_URL}/api/stream/songs/${songId}`
+}
+
+/**
+ * Profil publik & follow antar USER. Catatan: artist yang diikuti punya
+ * endpoint sendiri di `libraryApi` (`followingContain`, `followArtist`).
+ */
+export const usersApi = {
+  getProfile: (id: UserID) => api.get<PublicProfile>(`/users/${id}`).then((res) => res.data),
+
+  getFollowers: (id: UserID, params?: ListParams) =>
+    api.get<Page<PublicUser>>(`/users/${id}/followers`, { params }).then((res) => res.data),
+
+  getFollowing: (id: UserID, params?: ListParams) =>
+    api.get<Page<PublicUser>>(`/users/${id}/following`, { params }).then((res) => res.data),
+
+  getPlaylists: (id: UserID, params?: ListParams) =>
+    api.get<Page<Playlist>>(`/users/${id}/playlists`, { params }).then((res) => res.data),
+
+  follow: (id: UserID) => api.put<MessageResponse>(`/users/${id}/follow`).then((res) => res.data),
+  unfollow: (id: UserID) => api.delete<MessageResponse>(`/users/${id}/follow`).then((res) => res.data),
 }
 
 /**

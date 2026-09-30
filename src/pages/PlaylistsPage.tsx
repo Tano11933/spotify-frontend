@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -164,15 +165,30 @@ export function PlaylistsPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {publicPlaylists.map((playlist) => (
-                  <button
+                  <div
                     key={playlist.id}
-                    type="button"
-                    onClick={() => setSelected(playlist)}
-                    className="group rounded-xl border border-white/[0.06] bg-spotify-dark-gray p-4 text-left shadow-[0_4px_20px_-8px_rgba(0,0,0,0.5)] transition-all hover:border-white/10 hover:bg-spotify-elevated"
+                    className="rounded-xl border border-white/[0.06] bg-spotify-dark-gray p-4 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.5)] transition-colors hover:border-white/10 hover:bg-spotify-elevated"
                   >
-                    <p className="text-sm font-bold leading-tight text-spotify-white">{playlist.name}</p>
-                    <p className="mt-1 text-sm text-spotify-light-gray">oleh {playlist.user?.name ?? 'user'}</p>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(playlist)}
+                      className="block w-full rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
+                    >
+                      <span className="block truncate text-sm font-bold leading-tight text-spotify-white">
+                        {playlist.name}
+                      </span>
+                    </button>
+                    {playlist.user ? (
+                      <Link
+                        to={`/users/${playlist.user.id}`}
+                        className="mt-1 inline-block text-sm text-spotify-light-gray underline decoration-transparent underline-offset-4 transition-colors hover:text-spotify-white hover:decoration-white/30"
+                      >
+                        oleh {playlist.user.name}
+                      </Link>
+                    ) : (
+                      <p className="mt-1 text-sm text-spotify-light-gray">oleh pengguna</p>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

@@ -121,3 +121,18 @@ export interface HistoryEntry {
   played_at: string
   song: Song
 }
+
+/** Ringkasan user publik (tanpa email) dari endpoint /api/users. */
+export interface PublicUser {
+  id: UserID
+  name: string
+  created_at: string
+}
+
+/** Profil publik + statistik sosial dan status follow viewer. */
+export interface PublicProfile extends PublicUser {
+  followers: number
+  following: number
+  public_playlists: number
+  is_following: boolean
+}

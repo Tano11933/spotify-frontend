@@ -19,6 +19,7 @@ import { QueuePage } from '@/pages/QueuePage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SearchPage } from '@/pages/SearchPage'
+import { UserProfilePage } from '@/pages/UserProfilePage'
 import { useAuthStore } from '@/store/authStore'
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="artists/:id" element={<ArtistDetailPage />} />
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="albums/:id" element={<AlbumDetailPage />} />
+        <Route path="users/:id" element={<UserProfilePage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
