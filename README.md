@@ -129,6 +129,19 @@ bukan memakai logo/nama pihak lain.
   <img src="docs/screenshots/history.png" width="49%" alt="Riwayat putar" />
 </p>
 
+### Profil publik & follow user
+
+- Halaman `/users/:id`: identitas, statistik (pengikut, mengikuti, playlist
+  publik), dan tiga tab: playlist publik, pengikut, mengikuti.
+- Tombol **Ikuti** hanya muncul di profil orang lain saat login; statusnya
+  datang dari profil yang sudah dimuat lalu di-toggle optimistic.
+- Jalan masuk ke profil: menu "Profil saya" di top bar, tautan pemilik pada
+  kartu playlist publik, dan daftar pengikut/mengikuti yang saling menaut.
+- Email tidak pernah tampil di halaman ini; backend mengirim DTO publik tanpa
+  email.
+
+![Profil publik](docs/screenshots/profile.png)
+
 ### Dashboard admin
 
 - Hanya muncul di navigasi dan bisa dibuka kalau role user adalah `admin`.
@@ -214,6 +227,7 @@ Aturan yang dipegang:
 | `/search?q=` | Pencarian lintas tipe (lagu/artis/album/playlist) | 🌐 publik |
 | `/artists`, `/albums` | Daftar artist / album | 🌐 publik |
 | `/artists/:id`, `/albums/:id` | Detail artist / album | 🌐 publik |
+| `/users/:id` | Profil publik + tombol Ikuti | 🌐 publik |
 | `/library` | Lagu Disukai, album tersimpan, artist diikuti | 🔒 login |
 | `/queue` | Antrean berikutnya (tersimpan di server) | 🔒 login |
 | `/playlists` | Playlist milik user + playlist publik | 🔒 login |
