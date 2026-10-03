@@ -10,8 +10,13 @@ import type {
   ApiErrorResponse,
   Artist,
   AuthResponse,
+  ChartArtist,
+  ChartSong,
+  FeedEntry,
+  Genre,
   HistoryEntry,
   MessageResponse,
+  NotificationPage,
   Page,
   PlayerState,
   Playlist,
@@ -203,6 +208,38 @@ export const searchApi = {
     api.get<SearchResults>('/search', { params }).then((res) => res.data),
 }
 
+/** Genre katalog: daftar/detail/artist per genre. Semuanya publik. */
+export const genresApi = {
+  getAll: (params?: ListParams) =>
+    api.get<Page<Genre>>('/genres', { params }).then((res) => res.data),
+
+  getById: (id: number) => api.get<Genre>(`/genres/${id}`).then((res) => res.data),
+
+  getArtists: (id: number, params?: ListParams) =>
+    api.get<Page<Artist>>(`/genres/${id}/artists`, { params }).then((res) => res.data),
+}
+
+/**
+ * Discovery: rekomendasi heuristik backend.
+ *
+ * `getRelatedArtists` publik ("Fans also like"), sedangkan
+ * `getRecommendations` personal dan butuh login (butuh riwayat putar user).
+ * Chart publik dan dihitung dari materialized view 7 hari terakhir.
+ */
+export const discoveryApi = {
+  getRelatedArtists: (artistId: number, params?: ListParams) =>
+    api.get<Page<Artist>>(`/artists/${artistId}/related`, { params }).then((res) => res.data),
+
+  getRecommendations: (params?: ListParams) =>
+    api.get<Page<Song>>('/me/recommendations', { params }).then((res) => res.data),
+
+  getTopTracks: (params?: ListParams) =>
+    api.get<Page<ChartSong>>('/charts/tracks', { params }).then((res) => res.data),
+
+  getTopArtists: (params?: ListParams) =>
+    api.get<Page<ChartArtist>>('/charts/artists', { params }).then((res) => res.data),
+}
+
 export const playlistApi = {
   getMine: (params?: ListParams) =>
     api.get<Page<Playlist>>('/playlists', { params }).then((res) => res.data),
@@ -283,6 +320,22 @@ export const usersApi = {
 
   follow: (id: UserID) => api.put<MessageResponse>(`/users/${id}/follow`).then((res) => res.data),
   unfollow: (id: UserID) => api.delete<MessageResponse>(`/users/${id}/follow`).then((res) => res.data),
+}
+
+/**
+ * Notifikasi in-app milik user yang login. Pengiriman real-time-nya lewat
+ * WebSocket tertarget (event `notification:new`), bukan broadcast.
+ */
+export const notificationApi = {
+  getMine: (params?: ListParams) =>
+    api.get<NotificationPage>('/me/notifications', { params }).then((res) => res.data),
+  markAllRead: () => api.post<MessageResponse>('/me/notifications/read').then((res) => res.data),
+}
+
+/** Feed aktivitas user yang diikuti: lagu diputar & playlist publik dibuat. */
+export const feedApi = {
+  getFeed: (params?: ListParams) =>
+    api.get<Page<FeedEntry>>('/me/feed', { params }).then((res) => res.data),
 }
 
 /**

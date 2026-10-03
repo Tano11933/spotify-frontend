@@ -11,13 +11,34 @@ export interface User {
   updated_at: string
 }
 
+/** Kategori musik dari GET /api/genres. */
+export interface Genre {
+  id: number
+  name: string
+  slug: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Artist {
   id: number
   name: string
   bio: string
   image_url: string
+  /** Hanya terisi di detail artist (endpoint list tidak memuat genre). */
+  genres?: Genre[]
   created_at: string
   updated_at: string
+}
+
+/** Lagu di chart: field Song + jumlah putar 7 hari terakhir. */
+export interface ChartSong extends Song {
+  plays: number
+}
+
+/** Artist di chart: field Artist + total putar lagu-lagunya. */
+export interface ChartArtist extends Artist {
+  plays: number
 }
 
 export interface Album {
@@ -135,4 +156,33 @@ export interface PublicProfile extends PublicUser {
   following: number
   public_playlists: number
   is_following: boolean
+}
+
+/** Satu notifikasi in-app. `read_at` kosong berarti belum dibaca. */
+export interface NotificationEntry {
+  id: number
+  type: 'user_followed'
+  created_at: string
+  actor?: PublicUser
+  read_at?: string
+}
+
+/**
+ * Halaman notifikasi. Backend menambahkan `unread` ke envelope standar supaya
+ * lonceng bisa menampilkan badge tanpa request terpisah.
+ */
+export interface NotificationPage extends Page<NotificationEntry> {
+  unread: number
+}
+
+/**
+ * Satu aktivitas di feed: lagu yang diputar atau playlist publik yang dibuat
+ * user yang kita ikuti. Objek yang relevan ikut dirakit backend.
+ */
+export interface FeedEntry {
+  type: 'song_played' | 'playlist_created'
+  created_at: string
+  user: PublicUser
+  song?: Song
+  playlist?: Playlist
 }
