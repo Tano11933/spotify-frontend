@@ -12,13 +12,18 @@ interface SongRowProps {
   queue: Song[]
   /** Sembunyikan kolom artist saat semua lagu di daftar ini milik artist yang sama. */
   showArtist?: boolean
+  /**
+   * Isi kolom paling kanan. Default durasi lagu; chart memakai ini untuk
+   * menampilkan jumlah putar sebagai metrik utamanya.
+   */
+  trailing?: string
 }
 
 /**
- * Baris lagu untuk halaman detail (album/artist), pencarian, dan library —
- * bentuk daftar, bukan grid.
+ * Baris lagu untuk halaman detail (album/artist), pencarian, library, dan
+ * chart: bentuk daftar, bukan grid.
  */
-export function SongRow({ song, index, queue, showArtist = true }: SongRowProps) {
+export function SongRow({ song, index, queue, showArtist = true, trailing }: SongRowProps) {
   const play = usePlayerStore((state) => state.play)
   const currentSong = usePlayerStore((state) => state.currentSong)
   const isPlaying = usePlayerStore((state) => state.isPlaying)
@@ -29,7 +34,7 @@ export function SongRow({ song, index, queue, showArtist = true }: SongRowProps)
   return (
     <div
       className={cn(
-        'group grid w-full grid-cols-[2rem_1fr_auto_auto_2.5rem] items-center gap-3 rounded-md px-4 py-2',
+        'group grid w-full grid-cols-[2rem_1fr_auto_auto_auto] items-center gap-3 rounded-md px-4 py-2',
         'transition-colors hover:bg-spotify-elevated',
       )}
     >
@@ -90,9 +95,10 @@ export function SongRow({ song, index, queue, showArtist = true }: SongRowProps)
       />
 
       {/* tabular-nums membuat lebar tiap digit sama, jadi kolom durasi tidak
-          bergeser-geser antar baris. */}
-      <span className="text-right text-sm tabular-nums text-spotify-light-gray">
-        {formatDuration(song.duration)}
+          bergeser-geser antar baris. min-w menjaga kolom tetap rapi saat
+          diisi metrik lain seperti jumlah putar. */}
+      <span className="min-w-10 text-right text-sm tabular-nums text-spotify-light-gray">
+        {trailing ?? formatDuration(song.duration)}
       </span>
     </div>
   )

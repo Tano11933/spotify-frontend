@@ -5,9 +5,11 @@ import type { Artist } from '@/types'
 
 interface ArtistCardProps {
   artist: Artist
+  /** Teks kecil di bawah nama. Default "Artis"; chart memakai jumlah putar. */
+  meta?: string
 }
 
-export function ArtistCard({ artist }: ArtistCardProps) {
+export function ArtistCard({ artist, meta }: ArtistCardProps) {
   return (
     <Card>
       {/*
@@ -20,7 +22,7 @@ export function ArtistCard({ artist }: ArtistCardProps) {
         <CardCover imageUrl={artist.image_url} alt={artist.name} rounded="full" />
 
         <h3 className="truncate text-base font-semibold text-spotify-white">{artist.name}</h3>
-        <p className="mt-1 text-sm text-spotify-light-gray">Artis</p>
+        <p className="mt-1 text-sm text-spotify-light-gray">{meta ?? 'Artis'}</p>
       </Link>
     </Card>
   )
