@@ -46,6 +46,24 @@ const PlaylistIcon = (
   </svg>
 )
 
+const BrowseIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
+    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm2.9 7.1-1.7 4.1-4.1 1.7 1.7-4.1 4.1-1.7Z" />
+  </svg>
+)
+
+const FeedIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
+    <path d="M3 12h4l2.5-6 4 12 2.5-6H21v2h-4.2l-3.3 8-4-12-1.7 4H3v-2Z" />
+  </svg>
+)
+
+const ChartIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
+    <path d="M5 9h3v11H5V9Zm5.5-6h3v17h-3V3Zm5.5 9h3v8h-3v-8Z" />
+  </svg>
+)
+
 const AdminIcon = (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
     <path d="M12 2 4 5v6c0 5.2 3.4 9.8 8 11 4.6-1.2 8-5.8 8-11V5l-8-3Zm0 4 4 1.5V11c0 3.4-2 6.5-4 7.6-2-1.1-4-4.2-4-7.6V7.5L12 6Zm-1 3v3H8v2h3v3h2v-3h3v-2h-3V9h-2Z" />
@@ -55,11 +73,25 @@ const AdminIcon = (
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Beranda', icon: HomeIcon },
   { to: '/search', label: 'Cari', icon: SearchIcon },
+  { to: '/browse', label: 'Jelajahi', icon: BrowseIcon },
   { to: '/library', label: 'Lagu Disukai', icon: HeartIcon },
+  { to: '/feed', label: 'Feed', icon: FeedIcon },
   { to: '/artists', label: 'Artis', icon: ArtistIcon },
   { to: '/albums', label: 'Album', icon: AlbumIcon },
   { to: '/playlists', label: 'Playlist', icon: PlaylistIcon },
+  { to: '/charts', label: 'Chart', icon: ChartIcon },
 ]
+
+/**
+ * Navigasi bawah mobile dibatasi enam tujuan utama.
+ *
+ * Artis, Album, dan Chart tidak ikut karena tautannya sudah tersedia dari
+ * section Beranda (dan Jelajahi), sementara Panel admin pindah ke menu user di
+ * top bar. Menaruh sepuluh item di bottom nav membuat semuanya sempit dan
+ * sulit ditekan.
+ */
+const MOBILE_PATHS = ['/', '/search', '/browse', '/library', '/playlists', '/feed']
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => MOBILE_PATHS.includes(item.to))
 
 /**
  * Sidebar kiri — DESIGN.md §3.
@@ -125,26 +157,23 @@ export function Sidebar() {
 /**
  * Navigasi bawah khusus mobile — pengganti sidebar di layar < 640px
  * (DESIGN.md §6). Diletakkan di atas now-playing bar.
+ *
+ * Memakai daftar yang lebih pendek dari sidebar; lihat MOBILE_PATHS.
  */
 export function MobileNav() {
-  const user = useAuthStore((state) => state.user)
-  const items = user?.role === 'admin'
-    ? [...NAV_ITEMS, { to: '/admin', label: 'Admin', icon: AdminIcon }]
-    : NAV_ITEMS
-
   return (
     <nav
       aria-label="Navigasi utama"
       className="flex items-center justify-around border-t border-spotify-border bg-spotify-black-pure py-2 sm:hidden"
     >
-      {items.map((item) => (
+      {MOBILE_NAV_ITEMS.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'flex flex-col items-center gap-1 px-4 py-1 text-xs font-medium transition-colors',
+              'flex flex-col items-center gap-1 px-3 py-1 text-xs font-medium transition-colors',
               isActive ? 'text-spotify-white' : 'text-spotify-light-gray',
             )
           }

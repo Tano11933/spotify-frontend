@@ -9,11 +9,16 @@ import { AdminPage } from '@/pages/AdminPage'
 import { AlbumsPage } from '@/pages/AlbumsPage'
 import { ArtistDetailPage } from '@/pages/ArtistDetailPage'
 import { ArtistsPage } from '@/pages/ArtistsPage'
+import { BrowsePage } from '@/pages/BrowsePage'
+import { ChartsPage } from '@/pages/ChartsPage'
+import { FeedPage } from '@/pages/FeedPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { GenreDetailPage } from '@/pages/GenreDetailPage'
 import { HomePage } from '@/pages/HomePage'
 import { LibraryPage } from '@/pages/LibraryPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { NotificationsPage } from '@/pages/NotificationsPage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { QueuePage } from '@/pages/QueuePage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -62,6 +67,9 @@ export default function App() {
         {/* `index` = route yang cocok saat path-nya persis sama dengan induknya. */}
         <Route index element={<HomePage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="browse" element={<BrowsePage />} />
+        <Route path="genres/:id" element={<GenreDetailPage />} />
+        <Route path="charts" element={<ChartsPage />} />
         <Route path="artists" element={<ArtistsPage />} />
         <Route path="artists/:id" element={<ArtistDetailPage />} />
         <Route path="albums" element={<AlbumsPage />} />
@@ -69,6 +77,8 @@ export default function App() {
         <Route path="users/:id" element={<UserProfilePage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="library" element={<LibraryPage />} />
+          <Route path="feed" element={<FeedPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="queue" element={<QueuePage />} />
           <Route path="admin" element={<AdminPage />} />
