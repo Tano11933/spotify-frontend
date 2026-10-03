@@ -1,17 +1,23 @@
 import { useEffect, useRef } from 'react'
 
-import { playerApi } from '@/lib/api'
+import { notificationApi, playerApi } from '@/lib/api'
 import { wsClient } from '@/lib/websocket'
 import { useAuthStore } from '@/store/authStore'
+import { useNotificationStore } from '@/store/notificationStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { useToastStore } from '@/store/toastStore'
-import { WS_EVENT, type SongCreatedPayload, type SongPlayingPayload } from '@/types/websocket'
+import {
+  WS_EVENT,
+  type NotificationNewPayload,
+  type SongCreatedPayload,
+  type SongPlayingPayload,
+} from '@/types/websocket'
 
 /**
  * Menyambungkan WebSocket dan pencatatan pemutaran ke state aplikasi.
  * Dipanggil SEKALI dari AppLayout.
  *
- * Tiga tanggung jawab, sengaja dipisah jadi tiga efek supaya masing-masing
+ * Empat tanggung jawab, sengaja dipisah jadi empat efek supaya masing-masing
  * punya dependency-nya sendiri dan tidak saling memicu jalan ulang.
  */
 export function useRealtime() {
@@ -20,6 +26,8 @@ export function useRealtime() {
   const pushToast = useToastStore((state) => state.push)
   const currentSong = usePlayerStore((state) => state.currentSong)
   const isPlaying = usePlayerStore((state) => state.isPlaying)
+  const setUnread = useNotificationStore((state) => state.setUnread)
+  const incrementUnread = useNotificationStore((state) => state.increment)
 
   /* --- 1. Sambung/putus mengikuti status login ---------------------------- */
   useEffect(() => {
@@ -36,7 +44,7 @@ export function useRealtime() {
     return () => wsClient.disconnect()
   }, [accessToken, status])
 
-  /* --- 2. Terjemahkan event masuk jadi toast ------------------------------ */
+  /* --- 2. Terjemahkan event masuk jadi toast & badge ---------------------- */
   useEffect(() => {
     // subscribe() mengembalikan fungsi unsubscribe, dan itu langsung dipakai
     // sebagai cleanup efek ini.
@@ -67,12 +75,27 @@ export function useRealtime() {
           break
         }
 
+        case WS_EVENT.NOTIFICATION_NEW: {
+          // Dikirim TERTARGET ke user penerima (di sini: kita yang baru
+          // diikuti), jadi badge bisa langsung naik tanpa refetch.
+          const payload = event.payload as NotificationNewPayload | undefined
+          if (!payload?.notification) break
+
+          incrementUnread()
+          pushToast({
+            title: 'Pengikut baru',
+            description: `${payload.notification.actor?.name ?? 'Seseorang'} mulai mengikuti kamu`,
+            variant: 'info',
+          })
+          break
+        }
+
         // connection:ack, pong, dan error tidak perlu ditampilkan ke user.
         default:
           break
       }
     })
-  }, [pushToast])
+  }, [pushToast, incrementUnread])
 
   /* --- 3. Catat pemutaran ke server --------------------------------------- */
   //
@@ -93,4 +116,22 @@ export function useRealtime() {
       // Gagal mencatat bukan alasan menghentikan pemutaran lokal.
     })
   }, [currentSong, isPlaying, status])
+
+  /* --- 4. Muat jumlah notifikasi belum dibaca ----------------------------- */
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      // Logout harus mengosongkan badge; kalau tidak, angka milik user
+      // sebelumnya ikut terbawa ke halaman login.
+      setUnread(0)
+      return
+    }
+
+    // limit 1: yang dibutuhkan hanya field `unread`, bukan isi daftarnya.
+    void notificationApi
+      .getMine({ limit: 1 })
+      .then((page) => setUnread(page.unread))
+      .catch(() => {
+        // Badge bukan fitur kritis; biarkan 0 dan coba lagi saat event masuk.
+      })
+  }, [status, setUnread])
 }

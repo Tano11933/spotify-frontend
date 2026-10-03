@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { Button } from '@/components/ui/Button'
+import { NotificationBell } from '@/components/NotificationBell'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/store/authStore'
 
@@ -107,60 +108,74 @@ export function TopBar({ isScrolled }: TopBarProps) {
         ditampilkan. Ini yang mencegah kedipan "Masuk / Daftar" sepersekian
         detik saat halaman di-refresh oleh user yang sebenarnya sudah login.
       */}
-      {status === 'authenticated' && user ? (
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsMenuOpen((open) => !open)}
-            aria-haspopup="menu"
-            aria-expanded={isMenuOpen}
-            className="flex items-center gap-2 rounded-full bg-spotify-black-pure/70 py-1 pr-3 pl-1 transition-colors hover:bg-spotify-elevated"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-spotify-green text-sm font-bold text-spotify-black-pure">
-              {user.name.charAt(0).toUpperCase()}
-            </span>
-            <span className="max-w-32 truncate text-sm font-semibold text-spotify-white">
-              {user.name}
-            </span>
-          </button>
+      <div className="flex items-center gap-2">
+        {status === 'authenticated' && <NotificationBell />}
 
-          {isMenuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 z-40 mt-2 w-48 rounded-md border border-spotify-border bg-spotify-elevated py-1 shadow-lg"
+        {status === 'authenticated' && user ? (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+              className="flex items-center gap-2 rounded-full bg-spotify-black-pure/70 py-1 pr-3 pl-1 transition-colors hover:bg-spotify-elevated"
             >
-              <p className="truncate px-4 py-2 text-xs text-spotify-light-gray">{user.email}</p>
-              <Link
-                to={`/users/${user.id}`}
-                role="menuitem"
-                onClick={() => setIsMenuOpen(false)}
-                className="block w-full px-4 py-2 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border"
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-spotify-green text-sm font-bold text-spotify-black-pure">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+              <span className="max-w-32 truncate text-sm font-semibold text-spotify-white">
+                {user.name}
+              </span>
+            </button>
+
+            {isMenuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 z-40 mt-2 w-48 rounded-md border border-spotify-border bg-spotify-elevated py-1 shadow-lg"
               >
-                Profil saya
-              </Link>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void handleLogout()}
-                className="w-full px-4 py-2 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border"
-              >
-                Keluar
-              </button>
-            </div>
-          )}
-        </div>
-      ) : status === 'unauthenticated' ? (
-        <div className="flex items-center gap-2">
-          <Link to="/register">
-            <Button variant="ghost" size="sm">
-              Daftar
-            </Button>
-          </Link>
-          <Link to="/login">
-            <Button size="sm">Masuk</Button>
-          </Link>
-        </div>
-      ) : null}
+                <p className="truncate px-4 py-2 text-xs text-spotify-light-gray">{user.email}</p>
+                <Link
+                  to={`/users/${user.id}`}
+                  role="menuitem"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full px-4 py-2 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border"
+                >
+                  Profil saya
+                </Link>
+                {user.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    role="menuitem"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block w-full px-4 py-2 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border"
+                  >
+                    Panel admin
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void handleLogout()}
+                  className="w-full px-4 py-2 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border"
+                >
+                  Keluar
+                </button>
+              </div>
+            )}
+          </div>
+        ) : status === 'unauthenticated' ? (
+          <div className="flex items-center gap-2">
+            <Link to="/register">
+              <Button variant="ghost" size="sm">
+                Daftar
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button size="sm">Masuk</Button>
+            </Link>
+          </div>
+        ) : null}
+      </div>
     </header>
   )
 }
