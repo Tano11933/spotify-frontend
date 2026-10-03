@@ -2,8 +2,9 @@
 
 Aplikasi web streaming musik yang mengonsumsi REST + WebSocket API dari
 backend Go. Proyek portofolio dengan fokus pada pengalaman pemakaian ala
-Spotify: katalog, pemutar lagu, playlist, dan dashboard admin — dirakit tanpa
-UI kit, seluruh tampilan ditulis dengan Tailwind CSS.
+Spotify: katalog, pemutar lagu, playlist, discovery (genre, rekomendasi,
+chart), interaksi sosial, dan dashboard admin. Semuanya dirakit tanpa UI kit,
+seluruh tampilan ditulis dengan Tailwind CSS.
 
 Nama yang tampil di UI adalah **Melodia** — identitas visual sendiri, sengaja
 bukan memakai logo/nama pihak lain.
@@ -142,6 +143,50 @@ bukan memakai logo/nama pihak lain.
 
 ![Profil publik](docs/screenshots/profile.png)
 
+### Jelajahi genre
+
+- Halaman `/browse`: daftar genre sebagai pintu masuk katalog; klik genre
+  membuka `/genres/:id` berisi artist yang terdaftar di genre itu.
+- Detail artist menampilkan **chip genre** yang bisa diklik menuju genre
+  bersangkutan; datanya hanya ikut di response detail (list artist tidak
+  memuat genre, jadi tidak ada query berlebih).
+- Genre dikurasi admin lewat API backend (`/api/genres`); UI pengelolaannya
+  belum ada dan dicatat di bagian Belum Dikerjakan.
+
+<p align="center">
+  <img src="docs/screenshots/browse.png" width="49%" alt="Jelajahi genre" />
+  <img src="docs/screenshots/genre-detail.png" width="49%" alt="Detail genre" />
+</p>
+
+### Rekomendasi & chart
+
+- **"Dibuat untukmu"** di Beranda (perlu login): rekomendasi dari genre
+  favorit hasil riwayat putar, dihitung heuristik SQL di backend. User tanpa
+  riwayat tetap mendapat lagu terpopuler sebagai cadangan.
+- **"Penggemar juga menyukai"** di detail artist: artist lain dengan pengikut
+  beririsan, dengan cadangan artist segenre.
+- Halaman `/charts`: lagu dan artist paling banyak diputar **7 hari terakhir**,
+  dua tab dengan angka putar nyata dari materialized view backend. Preview-nya
+  muncul di Beranda sebagai "Tangga lagu 7 hari".
+
+![Halaman chart](docs/screenshots/charts.png)
+
+### Notifikasi & feed (perlu login)
+
+- **Lonceng notifikasi** di top bar dengan badge jumlah belum dibaca; angkanya
+  datang dari response API dan naik langsung saat event WebSocket tertarget
+  `notification:new` tiba.
+- Halaman `/notifications`: daftar pengikut baru, penanda "Baru" untuk yang
+  belum dibaca, dan tombol "Tandai semua dibaca".
+- Halaman `/feed`: aktivitas user yang diikuti, yaitu lagu yang mereka putar
+  (bisa langsung diputar dari feed) dan playlist publik yang mereka buat.
+  Playlist pribadi tidak pernah muncul.
+
+<p align="center">
+  <img src="docs/screenshots/notifications.png" width="49%" alt="Notifikasi" />
+  <img src="docs/screenshots/feed.png" width="49%" alt="Feed aktivitas" />
+</p>
+
 ### Dashboard admin
 
 - Hanya muncul di navigasi dan bisa dibuka kalau role user adalah `admin`.
@@ -161,7 +206,9 @@ bukan memakai logo/nama pihak lain.
   - `song:created` → "Lagu baru ditambahkan" (batched saat admin menambah lagu),
   - `song:playing` → "Sedang diputar user lain" (lagu yang kita putar juga
     disiarkan — **sekali per lagu**, tanpa penjaga itu satu lagu bisa memicu
-    toast duplikat di semua client).
+    toast duplikat di semua client),
+  - `notification:new` → "Pengikut baru" (dikirim **tertarget** hanya ke user
+    penerima, sekaligus menaikkan badge lonceng tanpa refetch).
 - **Reconnect bertahap** 1s → 2s → 5s → 10s → 30s, dan token dikirim lewat
   query string karena browser tidak bisa memasang header `Authorization` saat
   handshake WebSocket.
@@ -172,8 +219,10 @@ bukan memakai logo/nama pihak lain.
   di input, slider seek/volume memakai `<input type="range">` bawaan (bisa
   digeser keyboard, terbaca screen reader), focus ring di semua elemen
   interaktif.
-- Responsif: sidebar → hanya ikon di tablet → bottom-nav di mobile; kolom
-  progress/volume disembunyikan di layar kecil.
+- Responsif: sidebar → hanya ikon di tablet → bottom-nav di mobile yang
+  dibatasi enam tujuan utama (Jelajahi dan Feed ikut, Artis/Album/Chart tetap
+  terjangkau lewat tautan section Beranda); kolom progress/volume disembunyikan
+  di layar kecil.
 - Menghormati `prefers-reduced-motion`.
 
 ## Arsitektur
@@ -189,6 +238,7 @@ src/
 │   ├── AlbumCard.tsx       (menerima data, memanggil aksi store)
 │   ├── SongCard.tsx
 │   ├── SongRow.tsx
+│   ├── NotificationBell.tsx lonceng + badge notifikasi
 │   ├── DetailHero.tsx      kepala halaman detail artist/album
 │   ├── SectionGrid.tsx     grid section + tautan "Lihat semua"
 │   ├── StateMessage.tsx    Loading / Empty / Error state yang konsisten
@@ -197,11 +247,13 @@ src/
 │   ├── ProtectedRoute.tsx  guard: butuh login
 │   └── GuestOnlyRoute.tsx  guard: hanya tamu (login/register/forgot)
 ├── pages/                  Home, Artists, Albums, ArtistDetail, AlbumDetail,
+│                           Browse, GenreDetail, Charts, Feed, Notifications,
 │                           Playlists, Admin, auth pages, NotFound
 ├── hooks/
 │   ├── useAsync.ts         fetch + 3 keadaan + cancel guard + reload()
-│   └── useRealtime.ts      jembatan WebSocket → store (toast, player)
-├── store/                  Zustand: authStore, playerStore, toastStore
+│   └── useRealtime.ts      jembatan WebSocket → store (toast, badge, player)
+├── store/                  Zustand: authStore, playerStore, toastStore,
+│                           notificationStore
 ├── lib/
 │   ├── api.ts              axios instance + interceptor + endpoint per domain
 │   ├── websocket.ts        RealtimeClient (reconnect, subscribe, send)
@@ -223,12 +275,16 @@ Aturan yang dipegang:
 
 | Path | Halaman | Akses |
 |---|---|---|
-| `/` | Beranda (sapaan + katalog) | 🌐 publik |
+| `/` | Beranda (sapaan + rekomendasi + chart + katalog) | 🌐 publik |
 | `/search?q=` | Pencarian lintas tipe (lagu/artis/album/playlist) | 🌐 publik |
+| `/browse`, `/genres/:id` | Jelajahi genre & artist per genre | 🌐 publik |
+| `/charts` | Lagu & artist terpopuler 7 hari terakhir | 🌐 publik |
 | `/artists`, `/albums` | Daftar artist / album | 🌐 publik |
 | `/artists/:id`, `/albums/:id` | Detail artist / album | 🌐 publik |
 | `/users/:id` | Profil publik + tombol Ikuti | 🌐 publik |
 | `/library` | Lagu Disukai, album tersimpan, artist diikuti | 🔒 login |
+| `/feed` | Aktivitas user yang diikuti | 🔒 login |
+| `/notifications` | Notifikasi + tandai semua dibaca | 🔒 login |
 | `/queue` | Antrean berikutnya (tersimpan di server) | 🔒 login |
 | `/playlists` | Playlist milik user + playlist publik | 🔒 login |
 | `/admin` | Kelola katalog | 👑 admin |
@@ -356,6 +412,8 @@ npm run build         # build produksi
 
 ## Belum Dikerjakan
 
+- Kelola genre di dashboard admin (backend sudah siap: `/api/genres` dan
+  `PUT /api/artists/:id/genres`; frontend belum punya formnya)
 - Docker full-stack (Dockerfile + nginx `try_files` untuk SPA) — rencana ada
   di `DOCKER.md`
 - Test otomatis frontend (belum ada test runner; type-check + lint masih
