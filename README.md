@@ -343,6 +343,24 @@ Dibuat oleh `go run ./cmd/seed` di repo backend:
 | `gabriel@melodia.test` | `Password123!` | user (punya 3 playlist) |
 | `rani@melodia.test`, `dimas@melodia.test` | `Password123!` | user |
 
+### 4. Versi Docker (opsional, demo produksi)
+
+Frontend bisa dijalankan sebagai image nginx, sementara backend memakai stack
+Docker-nya sendiri:
+
+```powershell
+# repo spotify-backend
+docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml exec api ./seed
+
+# repo ini
+docker compose -f docker-compose.prod.yml up --build -d
+# buka http://localhost:3000
+```
+
+URL backend ditanam saat build (lihat `DOCKER.md`), dan SPA fallback diatur
+nginx sehingga refresh di route mana pun tetap membuka halaman yang benar.
+
 ## Environment Variables
 
 | Variable | Wajib | Default | Keterangan |
@@ -410,14 +428,15 @@ npx tsc -b --force    # type-check saja
 npm run build         # build produksi
 ```
 
+Push ke `main` dan pull request menjalankan `.github/workflows/ci.yml`:
+`npm ci`, lint, type-check, dan build produksi.
+
 ## Belum Dikerjakan
 
 - Kelola genre di dashboard admin (backend sudah siap: `/api/genres` dan
   `PUT /api/artists/:id/genres`; frontend belum punya formnya)
-- Docker full-stack (Dockerfile + nginx `try_files` untuk SPA) — rencana ada
-  di `DOCKER.md`
-- Test otomatis frontend (belum ada test runner; type-check + lint masih
-  menjadi penjaga utama)
+- Test otomatis frontend (belum ada test runner; type-check + lint + build di
+  CI masih menjadi penjaga utama)
 - Pagination UI — halaman list masih memuat sampai 100 item sekaligus
   (tombol "muat lagi" menyusul saat katalog membesar)
 - Virtualisasi daftar lagu untuk katalog besar

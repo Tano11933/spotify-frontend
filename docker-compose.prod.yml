@@ -1,0 +1,23 @@
+# Image produksi frontend: SPA hasil build disajikan nginx dengan fallback
+# routing (lihat nginx.conf).
+#
+# Backend TIDAK ikut di sini; jalankan dulu stack backend dari repo
+# spotify-backend:
+#
+#   docker compose -f docker-compose.prod.yml up --build -d   # di spotify-backend
+#   docker compose -f docker-compose.prod.yml up --build -d   # di sini
+#   buka http://localhost:3000
+#
+# VITE_API_BASE_URL/VITE_WS_URL di-resolve saat build dan dipakai BROWSER,
+# jadi nilainya localhost:9000 (host), bukan nama service Docker.
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:9000}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:9000/ws}
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    restart: unless-stopped
