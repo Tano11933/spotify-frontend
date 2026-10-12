@@ -193,10 +193,20 @@ bukan memakai logo/nama pihak lain.
 - Tab **Artist / Album / Lagu**: tabel data + form tambah/edit + hapus dengan
   konfirmasi. Album difilter otomatis sesuai artist yang dipilih, dan field
   opsional (bio, cover, album) punya validasi panjang + hint.
+- Tab **Genre**: CRUD genre (slug dibuat otomatis server dari nama) plus panel
+  **Genre per artist** — pilih artist, centang genrenya, simpan. Daftar yang
+  dikirim menggantikan seluruh genre artist tersebut, jadi melepas semua
+  centang juga bisa dilakukan dari sini.
 - Perubahan langsung terlihat di aplikasi karena data diambil ulang tiap
-  halaman dibuka.
+  halaman dibuka (detail artist punya cache yang di-invalidasi backend saat
+  genre berubah).
 
 ![Dashboard admin](docs/screenshots/admin.png)
+
+<p align="center">
+  <img src="docs/screenshots/admin-genre.png" width="49%" alt="Tab Genre" />
+  <img src="docs/screenshots/admin-genre-artist.png" width="49%" alt="Genre per artist" />
+</p>
 
 ### Real-time (WebSocket)
 
@@ -287,7 +297,7 @@ Aturan yang dipegang:
 | `/notifications` | Notifikasi + tandai semua dibaca | 🔒 login |
 | `/queue` | Antrean berikutnya (tersimpan di server) | 🔒 login |
 | `/playlists` | Playlist milik user + playlist publik | 🔒 login |
-| `/admin` | Kelola katalog | 👑 admin |
+| `/admin` | Kelola katalog & genre | 👑 admin |
 | `/login`, `/register`, `/forgot-password` | Alur autentikasi | hanya tamu |
 | `/reset-password?token=...` | Reset password dari email | siapa pun |
 | `*` | 404 | — |
@@ -433,8 +443,6 @@ Push ke `main` dan pull request menjalankan `.github/workflows/ci.yml`:
 
 ## Belum Dikerjakan
 
-- Kelola genre di dashboard admin (backend sudah siap: `/api/genres` dan
-  `PUT /api/artists/:id/genres`; frontend belum punya formnya)
 - Test otomatis frontend (belum ada test runner; type-check + lint + build di
   CI masih menjadi penjaga utama)
 - Pagination UI — halaman list masih memuat sampai 100 item sekaligus
