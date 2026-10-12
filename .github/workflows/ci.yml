@@ -28,6 +28,10 @@ jobs:
 
       - run: npm run lint
 
+      # Test unit cepat (beberapa detik): logika lib/schemas/store dan
+      # komponen kecil, tanpa backend.
+      - run: npm test
+
       - run: npx tsc -b --force
 
       # Build produksi sekaligus memastikan bundle Vite benar-benar terbentuk.
