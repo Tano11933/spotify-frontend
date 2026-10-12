@@ -380,4 +380,18 @@ export const adminApi = {
   updateSong: (id: number, payload: Partial<Pick<Song, 'title' | 'duration' | 'file_url' | 'artist_id' | 'album_id'>>) =>
     api.put<Song>(`/songs/${id}`, payload).then((res) => res.data),
   deleteSong: (id: number) => api.delete<MessageResponse>(`/songs/${id}`).then((res) => res.data),
+
+  // Genre dikurasi admin; slug dihitung server dari name.
+  createGenre: (payload: { name: string }) =>
+    api.post<Genre>('/genres', payload).then((res) => res.data),
+  updateGenre: (id: number, payload: { name: string }) =>
+    api.put<Genre>(`/genres/${id}`, payload).then((res) => res.data),
+  deleteGenre: (id: number) => api.delete<MessageResponse>(`/genres/${id}`).then((res) => res.data),
+
+  /**
+   * Mengganti SELURUH genre milik artist dengan daftar yang dikirim; daftar
+   * kosong melepas semuanya. Response-nya artist yang sudah diperbarui.
+   */
+  setArtistGenres: (artistId: number, genreIds: number[]) =>
+    api.put<Artist>(`/artists/${artistId}/genres`, { genre_ids: genreIds }).then((res) => res.data),
 }
