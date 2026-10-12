@@ -26,6 +26,7 @@ bukan memakai logo/nama pihak lain.
 | State management | Zustand 5 — `authStore`, `playerStore`, `toastStore` |
 | HTTP client | Axios — interceptor JWT + auto-refresh (single-flight) |
 | Form & validasi | React Hook Form + Zod |
+| Test | Vitest 4 + React Testing Library + jsdom |
 | Lint | oxlint |
 | Font | Inter lewat `@fontsource` (self-hosted, tanpa request ke Google) |
 
@@ -271,6 +272,7 @@ src/
 │   ├── format.ts           formatDuration, formatYear, greetingForHour
 │   └── cn.ts               penggabung className
 ├── schemas/                auth.schema.ts (Zod), env.schema.ts
+├── test/                   setup vitest (jsdom + cleanup RTL)
 └── types/                  kontrak backend + tipe event WebSocket
 ```
 
@@ -432,6 +434,8 @@ sudah menyiapkan jalur khusus `/ws` untuk ini.
 | `npm run build` | Type-check (`tsc -b`) + build produksi ke `dist/` |
 | `npm run preview` | Sajikan hasil build secara lokal |
 | `npm run lint` | oxlint |
+| `npm test` | Test unit sekali jalan (Vitest) |
+| `npm run test:watch` | Test unit mode watch |
 
 ```bash
 npx tsc -b --force    # type-check saja
@@ -439,12 +443,30 @@ npm run build         # build produksi
 ```
 
 Push ke `main` dan pull request menjalankan `.github/workflows/ci.yml`:
-`npm ci`, lint, type-check, dan build produksi.
+`npm ci`, lint, **test**, type-check, dan build produksi.
+
+## Testing
+
+```bash
+npm test          # sekali jalan
+npm run test:watch
+```
+
+Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
+DOM tiruan dan API di-mock. Yang diuji saat ini (40 test):
+
+| Area | Cakupan |
+|---|---|
+| `src/lib` | format durasi/tanggal/sapaan dan penggabung className |
+| `src/schemas` | login, register (trim nama + konfirmasi), forgot, reset |
+| `src/store` | toast (batas 3 + auto-dismiss 4 detik), notifikasi (badge, tandai dibaca), liked (batching `contains`, optimistic + revert saat gagal) |
+| `src/components` | state loading/empty/error + tombol coba lagi, lonceng notifikasi (badge `9+`, `aria-label` menyebut jumlah) |
+
+Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
+transformnya cepat; keduanya tidak mengubah hasil test.
 
 ## Belum Dikerjakan
 
-- Test otomatis frontend (belum ada test runner; type-check + lint + build di
-  CI masih menjadi penjaga utama)
 - Pagination UI — halaman list masih memuat sampai 100 item sekaligus
   (tombol "muat lagi" menyusul saat katalog membesar)
 - Virtualisasi daftar lagu untuk katalog besar
