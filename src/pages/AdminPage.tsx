@@ -5,15 +5,17 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
-import { catalogApi, adminApi, getApiErrorMessage } from '@/lib/api'
+import { catalogApi, adminApi, genresApi, getApiErrorMessage } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/store/authStore'
-import type { Album, Artist, Song } from '@/types'
+import type { Album, Artist, Genre, Song } from '@/types'
 
-type Tab = 'artists' | 'albums' | 'songs'
+type Tab = 'artists' | 'albums' | 'songs' | 'genres'
 
 const emptyArtist = { name: '', bio: '', image_url: '' }
 const emptyAlbum = { title: '', cover_url: '', release_date: '', artist_id: '' }
 const emptySong = { title: '', duration: '', file_url: '', artist_id: '', album_id: '' }
+const emptyGenre = { name: '' }
 
 export function AdminPage() {
   const user = useAuthStore((state) => state.user)
@@ -21,26 +23,37 @@ export function AdminPage() {
   const [artists, setArtists] = useState<Artist[]>([])
   const [albums, setAlbums] = useState<Album[]>([])
   const [songs, setSongs] = useState<Song[]>([])
+  const [genres, setGenres] = useState<Genre[]>([])
   const [artistForm, setArtistForm] = useState(emptyArtist)
   const [albumForm, setAlbumForm] = useState(emptyAlbum)
   const [songForm, setSongForm] = useState(emptySong)
+  const [genreForm, setGenreForm] = useState(emptyGenre)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
+  // Penempelan genre ke artist punya state sendiri: artist yang dipilih dan
+  // genre yang sedang dicentang.
+  const [assignedArtistId, setAssignedArtistId] = useState('')
+  const [assignedGenreIds, setAssignedGenreIds] = useState<number[]>([])
+  const [isLoadingArtistGenres, setIsLoadingArtistGenres] = useState(false)
+  const [isSavingArtistGenres, setIsSavingArtistGenres] = useState(false)
+
   async function loadCatalog() {
     setIsLoading(true)
     setError(null)
     try {
-      const [nextArtists, nextAlbums, nextSongs] = await Promise.all([
+      const [nextArtists, nextAlbums, nextSongs, nextGenres] = await Promise.all([
         catalogApi.getArtists({ limit: 100 }),
         catalogApi.getAlbums({ limit: 100 }),
         catalogApi.getSongs({ limit: 100 }),
+        genresApi.getAll({ limit: 100 }),
       ])
       setArtists(nextArtists.items)
       setAlbums(nextAlbums.items)
       setSongs(nextSongs.items)
+      setGenres(nextGenres.items)
     } catch (loadError) {
       setError(getApiErrorMessage(loadError))
     } finally {
@@ -57,6 +70,7 @@ export function AdminPage() {
     setArtistForm(emptyArtist)
     setAlbumForm(emptyAlbum)
     setSongForm(emptySong)
+    setGenreForm(emptyGenre)
   }
 
   function startArtistEdit(artist: Artist) {
@@ -86,6 +100,12 @@ export function AdminPage() {
       artist_id: String(song.artist_id),
       album_id: song.album_id ? String(song.album_id) : '',
     })
+  }
+
+  function startGenreEdit(genre: Genre) {
+    setTab('genres')
+    setEditingId(genre.id)
+    setGenreForm({ name: genre.name })
   }
 
   async function submitArtist(event: React.FormEvent<HTMLFormElement>) {
@@ -135,12 +155,67 @@ export function AdminPage() {
     }
   }
 
+  async function submitGenre(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    try {
+      if (editingId) await adminApi.updateGenre(editingId, genreForm)
+      else await adminApi.createGenre(genreForm)
+      resetForm()
+      setMessage('Genre berhasil disimpan.')
+      await loadCatalog()
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError))
+    }
+  }
+
+  async function changeAssignedArtist(artistId: string) {
+    setAssignedArtistId(artistId)
+    setAssignedGenreIds([])
+
+    if (!artistId) return
+
+    // Detail artist memuat genres (endpoint list tidak), jadi centang awalnya
+    // diambil dari sini.
+    setIsLoadingArtistGenres(true)
+    try {
+      const artist = await catalogApi.getArtist(Number(artistId))
+      setAssignedGenreIds((artist.genres ?? []).map((genre) => genre.id))
+    } catch (loadError) {
+      setError(getApiErrorMessage(loadError))
+    } finally {
+      setIsLoadingArtistGenres(false)
+    }
+  }
+
+  function toggleAssignedGenre(genreId: number) {
+    setAssignedGenreIds((ids) =>
+      ids.includes(genreId) ? ids.filter((id) => id !== genreId) : [...ids, genreId],
+    )
+  }
+
+  async function saveAssignedGenres() {
+    if (!assignedArtistId) return
+
+    setIsSavingArtistGenres(true)
+    try {
+      // Genre yang sudah dihapus (mis. di tab lain) tidak ikut dikirim.
+      const validIds = assignedGenreIds.filter((id) => genres.some((genre) => genre.id === id))
+      await adminApi.setArtistGenres(Number(assignedArtistId), validIds)
+      setMessage('Genre artist berhasil disimpan.')
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError))
+    } finally {
+      setIsSavingArtistGenres(false)
+    }
+  }
+
   async function remove(kind: Tab, id: number) {
     if (!window.confirm('Hapus data ini?')) return
     try {
       if (kind === 'artists') await adminApi.deleteArtist(id)
       if (kind === 'albums') await adminApi.deleteAlbum(id)
       if (kind === 'songs') await adminApi.deleteSong(id)
+      if (kind === 'genres') await adminApi.deleteGenre(id)
       setMessage('Data berhasil dihapus.')
       if (editingId === id) resetForm()
       await loadCatalog()
@@ -185,7 +260,7 @@ export function AdminPage() {
       )}
 
       <div className="flex flex-wrap gap-2 border-b border-white/[0.06] pb-3">
-        {(['artists', 'albums', 'songs'] as Tab[]).map((item) => (
+        {(['artists', 'albums', 'songs', 'genres'] as Tab[]).map((item) => (
           <Button
             key={item}
             size="sm"
@@ -195,7 +270,7 @@ export function AdminPage() {
               resetForm()
             }}
           >
-            {item === 'artists' ? 'Artist' : item === 'albums' ? 'Album' : 'Lagu'}
+            {item === 'artists' ? 'Artist' : item === 'albums' ? 'Album' : item === 'songs' ? 'Lagu' : 'Genre'}
           </Button>
         ))}
       </div>
@@ -204,7 +279,13 @@ export function AdminPage() {
         {/* Daftar */}
         <section className="min-w-0 rounded-xl border border-white/[0.06] bg-spotify-dark-gray p-5 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)]">
           <h2 className="mb-4 text-[1.1rem] font-bold text-spotify-white">
-            {tab === 'artists' ? 'Daftar artist' : tab === 'albums' ? 'Daftar album' : 'Daftar lagu'}
+            {tab === 'artists'
+              ? 'Daftar artist'
+              : tab === 'albums'
+                ? 'Daftar album'
+                : tab === 'songs'
+                  ? 'Daftar lagu'
+                  : 'Daftar genre'}
           </h2>
 
           {tab === 'artists' &&
@@ -273,6 +354,30 @@ export function AdminPage() {
                         Edit
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => void remove('songs', song.id)}>
+                        Hapus
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+          {tab === 'genres' &&
+            (genres.length === 0 ? (
+              <EmptyState message="Belum ada genre." />
+            ) : (
+              <div className="divide-y divide-white/[0.06]">
+                {genres.map((genre) => (
+                  <div key={genre.id} className="flex items-center justify-between gap-3 py-3.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-spotify-white">{genre.name}</p>
+                      <p className="truncate text-sm text-spotify-light-gray">Slug: {genre.slug}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Button size="sm" variant="ghost" onClick={() => startGenreEdit(genre)}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => void remove('genres', genre.id)}>
                         Hapus
                       </Button>
                     </div>
@@ -428,8 +533,98 @@ export function AdminPage() {
               </Button>
             </form>
           )}
+
+          {tab === 'genres' && (
+            <form onSubmit={(e) => void submitGenre(e)} className="space-y-4">
+              <Input
+                label="Nama genre"
+                value={genreForm.name}
+                onChange={(e) => setGenreForm({ name: e.target.value })}
+                placeholder="mis. Indie Folk"
+                required
+                hint="Slug dibuat otomatis dari nama"
+              />
+              <Button type="submit" className="w-full py-3.5">
+                Simpan genre
+              </Button>
+            </form>
+          )}
         </section>
       </div>
+
+      {tab === 'genres' && (
+        <section className="rounded-xl border border-white/[0.06] bg-spotify-dark-gray p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)]">
+          <h2 className="text-[1.1rem] font-bold text-spotify-white">Genre per artist</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-spotify-light-gray">
+            Pilih artist lalu centang genrenya. Daftar yang disimpan menggantikan seluruh genre
+            artist tersebut; melepas semua centang berarti artist itu tidak punya genre.
+          </p>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
+            <Select
+              label="Artist"
+              value={assignedArtistId}
+              onChange={(e) => void changeAssignedArtist(e.target.value)}
+              placeholder="Pilih artist"
+            >
+              {artists.map((artist) => (
+                <option key={artist.id} value={artist.id}>
+                  {artist.name}
+                </option>
+              ))}
+            </Select>
+
+            <div>
+              <p className="mb-2 text-sm font-medium text-spotify-white">Genre</p>
+
+              {!assignedArtistId ? (
+                <p className="text-sm text-spotify-light-gray">
+                  Pilih artist dulu untuk melihat genrenya.
+                </p>
+              ) : isLoadingArtistGenres ? (
+                <p className="text-sm text-spotify-light-gray">Memuat genre artist…</p>
+              ) : genres.length === 0 ? (
+                <p className="text-sm text-spotify-light-gray">Belum ada genre yang bisa ditempel.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {genres.map((genre) => {
+                    const checked = assignedGenreIds.includes(genre.id)
+                    return (
+                      <label
+                        key={genre.id}
+                        className={cn(
+                          'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm transition-colors',
+                          'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-spotify-white',
+                          checked
+                            ? 'border-spotify-green/60 bg-spotify-green/10 text-spotify-white'
+                            : 'border-spotify-border text-spotify-light-gray hover:border-white/40 hover:text-spotify-white',
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleAssignedGenre(genre.id)}
+                          className="h-4 w-4 accent-spotify-green"
+                        />
+                        {genre.name}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <Button
+            className="mt-5"
+            disabled={!assignedArtistId}
+            isLoading={isSavingArtistGenres}
+            onClick={() => void saveAssignedGenres()}
+          >
+            Simpan genre artist
+          </Button>
+        </section>
+      )}
     </div>
   )
 }
