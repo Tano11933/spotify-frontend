@@ -59,6 +59,10 @@ bukan memakai logo/nama pihak lain.
 - **Detail album**: cover, artist, tahun, jumlah lagu, dan daftar lagu —
   cukup satu request karena `GET /api/albums/:id` backend sudah memuat
   artist + songs (Preload GORM).
+- **Daftar besar dimuat bertahap**: `/artists`, `/albums`, dan tab Library
+  memuat 24 item pertama, sisanya lewat tombol **"Muat lagi"** dengan
+  penghitung "Menampilkan X dari Y". Kalau halaman berikutnya gagal, tombolnya
+  berubah jadi "Coba lagi" tanpa menghilangkan item yang sudah tampil.
 - **Daftar artist/album** dan halaman **404** untuk path yang tidak dikenal.
 
 ![Beranda](docs/screenshots/home.png)
@@ -252,6 +256,7 @@ src/
 │   ├── NotificationBell.tsx lonceng + badge notifikasi
 │   ├── DetailHero.tsx      kepala halaman detail artist/album
 │   ├── SectionGrid.tsx     grid section + tautan "Lihat semua"
+│   ├── LoadMore.tsx        tombol "Muat lagi" + penghitung untuk daftar
 │   ├── StateMessage.tsx    Loading / Empty / Error state yang konsisten
 │   ├── Toast.tsx           container notifikasi
 │   ├── Logo.tsx
@@ -262,6 +267,7 @@ src/
 │                           Playlists, Admin, auth pages, NotFound
 ├── hooks/
 │   ├── useAsync.ts         fetch + 3 keadaan + cancel guard + reload()
+│   ├── usePagedList.ts     daftar offset + akumulasi "muat lagi" + anti-race
 │   └── useRealtime.ts      jembatan WebSocket → store (toast, badge, player)
 ├── store/                  Zustand: authStore, playerStore, toastStore,
 │                           notificationStore
@@ -453,13 +459,14 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Yang diuji saat ini (40 test):
+DOM tiruan dan API di-mock. Yang diuji saat ini (45 test):
 
 | Area | Cakupan |
 |---|---|
 | `src/lib` | format durasi/tanggal/sapaan dan penggabung className |
 | `src/schemas` | login, register (trim nama + konfirmasi), forgot, reset |
 | `src/store` | toast (batas 3 + auto-dismiss 4 detik), notifikasi (badge, tandai dibaca), liked (batching `contains`, optimistic + revert saat gagal) |
+| `src/hooks` | `usePagedList`: halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah |
 | `src/components` | state loading/empty/error + tombol coba lagi, lonceng notifikasi (badge `9+`, `aria-label` menyebut jumlah) |
 
 Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
@@ -467,6 +474,4 @@ transformnya cepat; keduanya tidak mengubah hasil test.
 
 ## Belum Dikerjakan
 
-- Pagination UI — halaman list masih memuat sampai 100 item sekaligus
-  (tombol "muat lagi" menyusul saat katalog membesar)
 - Virtualisasi daftar lagu untuk katalog besar
