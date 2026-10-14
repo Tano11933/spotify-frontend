@@ -2,10 +2,11 @@ import { useState } from 'react'
 
 import { AlbumCard } from '@/components/AlbumCard'
 import { ArtistCard } from '@/components/ArtistCard'
+import { LoadMore } from '@/components/LoadMore'
 import { SectionGrid } from '@/components/SectionGrid'
 import { SongRow } from '@/components/SongRow'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
-import { useAsync } from '@/hooks/useAsync'
+import { usePagedList } from '@/hooks/usePagedList'
 import { cn } from '@/lib/cn'
 import { libraryApi, playerApi } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/format'
@@ -13,16 +14,6 @@ import { usePlayerStore } from '@/store/playerStore'
 import type { Album, Artist, HistoryEntry, Song } from '@/types'
 
 type LibraryTab = 'tracks' | 'albums' | 'artists' | 'history'
-
-/**
- * Bentuk data per tab — discriminated union supaya TypeScript bisa
- * mempersempit tipenya saat merender (`data.tab === 'tracks'` → `data.songs`).
- */
-type LibraryData =
-  | { tab: 'tracks'; songs: Song[] }
-  | { tab: 'albums'; albums: Album[] }
-  | { tab: 'artists'; artists: Artist[] }
-  | { tab: 'history'; entries: HistoryEntry[] }
 
 const TABS: Array<{ id: LibraryTab; label: string }> = [
   { id: 'tracks', label: 'Lagu Disukai' },
@@ -32,42 +23,16 @@ const TABS: Array<{ id: LibraryTab; label: string }> = [
 ]
 
 /**
- * Halaman library pribadi: lagu disukai, album tersimpan, artist diikuti.
+ * Halaman library pribadi: lagu disukai, album tersimpan, artist diikuti, dan
+ * riwayat putar.
  *
- * Satu `useAsync` dengan dependency [tab] — berganti tab memuat ulang datanya,
- * dan tiap tab punya bentuk data sendiri yang dibedakan lewat field `tab`
- * (discriminated union) supaya TypeScript bisa mempersempit tipenya.
+ * Setiap tab adalah komponen sendiri (lihat di bawah) supaya hanya tab AKTIF
+ * yang memuat data: hook paginasi milik tab ter-mount saat tabnya tampil dan
+ * ter-unmount saat ditinggalkan. Header dan tablist tetap di sini supaya tidak
+ * ikut berkedip saat data tab dimuat.
  */
 export function LibraryPage() {
   const [tab, setTab] = useState<LibraryTab>('tracks')
-
-  const { data, error, isLoading, reload } = useAsync<LibraryData>(
-    () => {
-      if (tab === 'albums') {
-        return libraryApi
-          .getAlbums({ limit: 100 })
-          .then((page) => ({ tab: 'albums' as const, albums: page.items }))
-      }
-      if (tab === 'artists') {
-        return libraryApi
-          .getFollowing({ limit: 100 })
-          .then((page) => ({ tab: 'artists' as const, artists: page.items }))
-      }
-      if (tab === 'history') {
-        return playerApi
-          .getHistory({ limit: 100 })
-          .then((page) => ({ tab: 'history' as const, entries: page.items }))
-      }
-      return libraryApi
-        .getTracks({ limit: 100 })
-        .then((page) => ({ tab: 'tracks' as const, songs: page.items }))
-    },
-    [tab],
-  )
-
-  if (isLoading) return <LoadingState />
-  if (error) return <ErrorState message={error} onRetry={reload} />
-  if (!data) return null
 
   return (
     <div className="pt-4">
@@ -85,7 +50,7 @@ export function LibraryPage() {
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
             className={cn(
-              'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
+              'rounded-full px-4 py-3 text-sm font-semibold transition-colors sm:py-2',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white',
               tab === item.id
                 ? 'bg-spotify-green text-spotify-black-pure'
@@ -97,48 +62,135 @@ export function LibraryPage() {
         ))}
       </div>
 
-      {data.tab === 'tracks' &&
-        (data.songs.length === 0 ? (
-          <EmptyState message="Belum ada lagu disukai. Tekan ikon hati pada lagu mana pun untuk menyimpannya." />
-        ) : (
-          <ul className="flex flex-col">
-            {data.songs.map((song, index) => (
-              <li key={song.id}>
-                <SongRow song={song} index={index} queue={data.songs} />
-              </li>
-            ))}
-          </ul>
-        ))}
-
-      {data.tab === 'albums' &&
-        (data.albums.length === 0 ? (
-          <EmptyState message="Belum ada album tersimpan. Buka sebuah album lalu tekan Simpan." />
-        ) : (
-          <SectionGrid title="Album tersimpan">
-            {data.albums.map((album) => (
-              <AlbumCard key={album.id} album={album} />
-            ))}
-          </SectionGrid>
-        ))}
-
-      {data.tab === 'artists' &&
-        (data.artists.length === 0 ? (
-          <EmptyState message="Belum ada artist yang diikuti. Buka halaman artist lalu tekan Ikuti." />
-        ) : (
-          <SectionGrid title="Artis yang diikuti">
-            {data.artists.map((artist) => (
-              <ArtistCard key={artist.id} artist={artist} />
-            ))}
-          </SectionGrid>
-        ))}
-
-      {data.tab === 'history' &&
-        (data.entries.length === 0 ? (
-          <EmptyState message="Belum ada riwayat putar. Putar lagu mana pun, riwayatnya muncul di sini." />
-        ) : (
-          <HistoryList entries={data.entries} />
-        ))}
+      {tab === 'tracks' && <TracksTab />}
+      {tab === 'albums' && <AlbumsTab />}
+      {tab === 'artists' && <ArtistsTab />}
+      {tab === 'history' && <HistoryTab />}
     </div>
+  )
+}
+
+function TracksTab() {
+  const { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload } =
+    usePagedList<Song>((params) => libraryApi.getTracks(params))
+
+  if (isLoading) return <LoadingState />
+  if (error && items.length === 0) return <ErrorState message={error} onRetry={reload} />
+  if (items.length === 0) {
+    return (
+      <EmptyState message="Belum ada lagu disukai. Tekan ikon hati pada lagu mana pun untuk menyimpannya." />
+    )
+  }
+
+  return (
+    <>
+      <ul className="flex flex-col">
+        {items.map((song, index) => (
+          <li key={song.id}>
+            <SongRow song={song} index={index} queue={items} />
+          </li>
+        ))}
+      </ul>
+
+      <LoadMore
+        shown={items.length}
+        total={total}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        error={error}
+        onLoadMore={loadMore}
+        label="lagu"
+      />
+    </>
+  )
+}
+
+function AlbumsTab() {
+  const { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload } =
+    usePagedList<Album>((params) => libraryApi.getAlbums(params))
+
+  if (isLoading) return <LoadingState />
+  if (error && items.length === 0) return <ErrorState message={error} onRetry={reload} />
+  if (items.length === 0) {
+    return <EmptyState message="Belum ada album tersimpan. Buka sebuah album lalu tekan Simpan." />
+  }
+
+  return (
+    <>
+      <SectionGrid title="Album tersimpan">
+        {items.map((album) => (
+          <AlbumCard key={album.id} album={album} />
+        ))}
+      </SectionGrid>
+
+      <LoadMore
+        shown={items.length}
+        total={total}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        error={error}
+        onLoadMore={loadMore}
+        label="album"
+      />
+    </>
+  )
+}
+
+function ArtistsTab() {
+  const { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload } =
+    usePagedList<Artist>((params) => libraryApi.getFollowing(params))
+
+  if (isLoading) return <LoadingState />
+  if (error && items.length === 0) return <ErrorState message={error} onRetry={reload} />
+  if (items.length === 0) {
+    return <EmptyState message="Belum ada artist yang diikuti. Buka halaman artist lalu tekan Ikuti." />
+  }
+
+  return (
+    <>
+      <SectionGrid title="Artis yang diikuti">
+        {items.map((artist) => (
+          <ArtistCard key={artist.id} artist={artist} />
+        ))}
+      </SectionGrid>
+
+      <LoadMore
+        shown={items.length}
+        total={total}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        error={error}
+        onLoadMore={loadMore}
+        label="artis"
+      />
+    </>
+  )
+}
+
+function HistoryTab() {
+  const { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload } =
+    usePagedList<HistoryEntry>((params) => playerApi.getHistory(params))
+
+  if (isLoading) return <LoadingState />
+  if (error && items.length === 0) return <ErrorState message={error} onRetry={reload} />
+  if (items.length === 0) {
+    return <EmptyState message="Belum ada riwayat putar. Putar lagu mana pun, riwayatnya muncul di sini." />
+  }
+
+  return (
+    <>
+      <HistoryList entries={items} />
+
+      <LoadMore
+        shown={items.length}
+        total={total}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        error={error}
+        onLoadMore={loadMore}
+        label="riwayat"
+      />
+    </>
   )
 }
 
