@@ -6,6 +6,7 @@ import { LoadMore } from '@/components/LoadMore'
 import { SectionGrid } from '@/components/SectionGrid'
 import { SongRow } from '@/components/SongRow'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
+import { useCursorList } from '@/hooks/useCursorList'
 import { usePagedList } from '@/hooks/usePagedList'
 import { cn } from '@/lib/cn'
 import { libraryApi, playerApi } from '@/lib/api'
@@ -168,8 +169,10 @@ function ArtistsTab() {
 }
 
 function HistoryTab() {
+  // Riwayat memakai cursor, bukan offset: datanya terus bertambah dan posisi
+  // halaman tidak boleh bergeser saat ada putaran baru masuk.
   const { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload } =
-    usePagedList<HistoryEntry>((params) => playerApi.getHistory(params))
+    useCursorList<HistoryEntry>((params) => playerApi.getHistory(params))
 
   if (isLoading) return <LoadingState />
   if (error && items.length === 0) return <ErrorState message={error} onRetry={reload} />
