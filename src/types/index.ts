@@ -103,6 +103,13 @@ export interface Page<T> {
   total: number
   limit: number
   offset: number
+
+  /**
+   * Hanya diisi endpoint yang mendukung cursor pagination (feed & riwayat):
+   * nilai opaque untuk mengambil halaman berikutnya. Tidak ada artinya di
+   * mode offset biasa.
+   */
+  next_cursor?: string
 }
 
 /** Satu kesalahan validasi dari backend (`details` pada response 400). */

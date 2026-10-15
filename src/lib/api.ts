@@ -334,7 +334,7 @@ export const notificationApi = {
 
 /** Feed aktivitas user yang diikuti: lagu diputar & playlist publik dibuat. */
 export const feedApi = {
-  getFeed: (params?: ListParams) =>
+  getFeed: (params?: ListParams & { cursor?: string }) =>
     api.get<Page<FeedEntry>>('/me/feed', { params }).then((res) => res.data),
 }
 
@@ -360,7 +360,7 @@ export const playerApi = {
   removeFromQueue: (songId: number) =>
     api.delete<MessageResponse>(`/me/player/queue/${songId}`).then((res) => res.data),
 
-  getHistory: (params?: ListParams) =>
+  getHistory: (params?: ListParams & { cursor?: string }) =>
     api.get<Page<HistoryEntry>>('/me/history', { params }).then((res) => res.data),
 }
 
