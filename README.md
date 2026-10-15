@@ -59,10 +59,12 @@ bukan memakai logo/nama pihak lain.
 - **Detail album**: cover, artist, tahun, jumlah lagu, dan daftar lagu —
   cukup satu request karena `GET /api/albums/:id` backend sudah memuat
   artist + songs (Preload GORM).
-- **Daftar besar dimuat bertahap**: `/artists`, `/albums`, dan tab Library
-  memuat 24 item pertama, sisanya lewat tombol **"Muat lagi"** dengan
-  penghitung "Menampilkan X dari Y". Kalau halaman berikutnya gagal, tombolnya
-  berubah jadi "Coba lagi" tanpa menghilangkan item yang sudah tampil.
+- **Daftar besar dimuat bertahap**: `/artists`, `/albums`, dan tiga tab Library
+  memuat 24 item pertama lewat **offset**; **Feed** dan **Riwayat** memuat 20
+  item pertama lewat **cursor** karena datanya terus bertambah. Sisanya diambil
+  dengan tombol **"Muat lagi"** berpenghitung "Menampilkan X dari Y". Kalau
+  halaman berikutnya gagal, tombolnya berubah jadi "Coba lagi" tanpa
+  menghilangkan item yang sudah tampil.
 - **Daftar artist/album** dan halaman **404** untuk path yang tidak dikenal.
 
 ![Beranda](docs/screenshots/home.png)
@@ -128,7 +130,10 @@ bukan memakai logo/nama pihak lain.
 - **Album tersimpan & artist diikuti**: tombol Simpan/Ikuti di halaman detail
   album dan artist.
 - Halaman `/library` dengan empat tab: Lagu Disukai, Album, Artis, dan
-  **Riwayat** (lagu yang terakhir diputar, lengkap dengan waktunya).
+  **Riwayat** (lagu yang terakhir diputar, lengkap dengan waktunya). Tab lagu,
+  album, dan artis memuat 24 baris pertama (offset); tab **Riwayat** memuat 20
+  baris pertama dengan **cursor** karena datanya terus bertambah, jadi tidak
+  ada baris yang bergeser atau terlewat saat ada putaran baru masuk.
 
 <p align="center">
   <img src="docs/screenshots/library.png" width="49%" alt="Lagu Disukai" />
@@ -185,7 +190,9 @@ bukan memakai logo/nama pihak lain.
   belum dibaca, dan tombol "Tandai semua dibaca".
 - Halaman `/feed`: aktivitas user yang diikuti, yaitu lagu yang mereka putar
   (bisa langsung diputar dari feed) dan playlist publik yang mereka buat.
-  Playlist pribadi tidak pernah muncul.
+  Playlist pribadi tidak pernah muncul. Memuat 20 aktivitas pertama, sisanya
+  lewat "Muat lagi" berbasis **cursor**: posisi halaman datang dari server,
+  jadi tidak ada aktivitas yang bergeser atau terlewat saat ada yang baru.
 
 <p align="center">
   <img src="docs/screenshots/notifications.png" width="49%" alt="Notifikasi" />
@@ -268,6 +275,7 @@ src/
 ├── hooks/
 │   ├── useAsync.ts         fetch + 3 keadaan + cancel guard + reload()
 │   ├── usePagedList.ts     daftar offset + akumulasi "muat lagi" + anti-race
+│   ├── useCursorList.ts    daftar cursor (keyset) untuk feed & riwayat
 │   └── useRealtime.ts      jembatan WebSocket → store (toast, badge, player)
 ├── store/                  Zustand: authStore, playerStore, toastStore,
 │                           notificationStore
@@ -459,14 +467,14 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Yang diuji saat ini (45 test):
+DOM tiruan dan API di-mock. Yang diuji saat ini (50 test):
 
 | Area | Cakupan |
 |---|---|
 | `src/lib` | format durasi/tanggal/sapaan dan penggabung className |
 | `src/schemas` | login, register (trim nama + konfirmasi), forgot, reset |
 | `src/store` | toast (batas 3 + auto-dismiss 4 detik), notifikasi (badge, tandai dibaca), liked (batching `contains`, optimistic + revert saat gagal) |
-| `src/hooks` | `usePagedList`: halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah |
+| `src/hooks` | `usePagedList` (offset) dan `useCursorList` (cursor): halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah |
 | `src/components` | state loading/empty/error + tombol coba lagi, lonceng notifikasi (badge `9+`, `aria-label` menyebut jumlah) |
 
 Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
