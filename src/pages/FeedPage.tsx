@@ -1,7 +1,8 @@
 import { Link } from 'react-router'
 
+import { LoadMore } from '@/components/LoadMore'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
-import { useAsync } from '@/hooks/useAsync'
+import { useCursorList } from '@/hooks/useCursorList'
 import { feedApi } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/format'
 import { usePlayerStore } from '@/store/playerStore'
@@ -11,13 +12,17 @@ import type { FeedEntry } from '@/types'
  * Feed aktivitas user yang diikuti. Isinya dirakit backend (read-time join ke
  * `user_follows`), jadi halaman ini cukup menampilkan; playlist pribadi tidak
  * pernah ikut tercatat.
+ *
+ * Memakai cursor pagination (bukan offset) karena aktivitas terus bertambah:
+ * halaman berikutnya diambil dari `next_cursor`, jadi tidak ada item yang
+ * bergeser atau terlewat saat ada aktivitas baru masuk.
  */
 export function FeedPage() {
-  const { data, error, isLoading, reload } = useAsync(() => feedApi.getFeed({ limit: 50 }), [])
+  const { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload } =
+    useCursorList<FeedEntry>((params) => feedApi.getFeed(params))
 
   if (isLoading) return <LoadingState label="Memuat feed…" />
-  if (error) return <ErrorState message={error} onRetry={reload} />
-  if (!data) return null
+  if (error && items.length === 0) return <ErrorState message={error} onRetry={reload} />
 
   return (
     <div className="pt-4">
@@ -26,14 +31,26 @@ export function FeedPage() {
         Aktivitas dari orang yang kamu ikuti.
       </p>
 
-      {data.items.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState message="Feed masih kosong. Ikuti user lain lewat tautan pemilik di playlist publik supaya aktivitas mereka muncul di sini." />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {data.items.map((entry) => (
-            <FeedItem key={feedKey(entry)} entry={entry} />
-          ))}
-        </ul>
+        <>
+          <ul className="flex flex-col gap-3">
+            {items.map((entry) => (
+              <FeedItem key={feedKey(entry)} entry={entry} />
+            ))}
+          </ul>
+
+          <LoadMore
+            shown={items.length}
+            total={total}
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            error={error}
+            onLoadMore={loadMore}
+            label="aktivitas"
+          />
+        </>
       )}
     </div>
   )
