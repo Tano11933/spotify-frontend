@@ -34,5 +34,13 @@ export default defineConfig({
     css: false,
     // Mock/spy dipulihkan otomatis antar test supaya tidak bocor.
     restoreMocks: true,
+    // Default env untuk test. `src/lib/env.ts` memvalidasi env saat module
+    // dimuat, dan file .env TIDAK ikut ke git (gitignored) sehingga checkout
+    // bersih (CI) tidak punya nilainya. Test tidak boleh bergantung pada file
+    // lokal, jadi nilainya diberikan di sini.
+    env: {
+      VITE_API_BASE_URL: 'http://localhost:9000',
+      VITE_WS_URL: 'ws://127.0.0.1:9000/ws',
+    },
   },
 })
