@@ -26,6 +26,12 @@ jobs:
       # rentang versi seperti npm install.
       - run: npm ci
 
+      # Checkout bersih tidak punya .env (gitignored). Salin contohnya supaya
+      # langkah build memakai konfigurasi yang sama seperti setup lokal; test
+      # sendiri tidak bergantung pada file ini (lihat `test.env` di
+      # vite.config.ts).
+      - run: cp .env.example .env
+
       - run: npm run lint
 
       # Test unit cepat (beberapa detik): logika lib/schemas/store dan
