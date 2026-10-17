@@ -17,6 +17,7 @@ import { GenreDetailPage } from '@/pages/GenreDetailPage'
 import { HomePage } from '@/pages/HomePage'
 import { LibraryPage } from '@/pages/LibraryPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { NewReleasesPage } from '@/pages/NewReleasesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="artists/:id" element={<ArtistDetailPage />} />
         <Route path="albums" element={<AlbumsPage />} />
         <Route path="albums/:id" element={<AlbumDetailPage />} />
+        <Route path="new-releases" element={<NewReleasesPage />} />
         <Route path="users/:id" element={<UserProfilePage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="library" element={<LibraryPage />} />

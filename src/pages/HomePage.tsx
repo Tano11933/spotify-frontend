@@ -23,6 +23,9 @@ export function HomePage() {
    * (5 kartu), lagu satu halaman penuh, dan chart cukup 5 untuk teaser. `total`
    * dari envelope dipakai untuk memutuskan apakah "Lihat semua" perlu tampil.
    *
+   * Section "Album terbaru" memakai endpoint rilisan terbaru yang sudah
+   * diurutkan backend, jadi isinya benar-benar yang paling baru.
+   *
    * Ini juga skenario yang menguji single-flight di interceptor: keempatnya
    * bisa balik 401 hampir bersamaan saat access token kedaluwarsa, dan hanya
    * boleh ada SATU panggilan refresh (lihat lib/api.ts).
@@ -31,7 +34,7 @@ export function HomePage() {
     () =>
       Promise.all([
         catalogApi.getArtists({ limit: PREVIEW_LIMIT }),
-        catalogApi.getAlbums({ limit: PREVIEW_LIMIT }),
+        catalogApi.getNewReleases({ limit: PREVIEW_LIMIT }),
         catalogApi.getSongs({ limit: 20 }),
         discoveryApi.getTopTracks({ limit: PREVIEW_LIMIT }),
       ]).then(([artists, albums, songs, topTracks]) => ({ artists, albums, songs, topTracks })),
@@ -122,7 +125,7 @@ export function HomePage() {
           {albums.items.length > 0 && (
             <SectionGrid
               title="Album terbaru"
-              seeAllTo={albums.total > albums.items.length ? '/albums' : undefined}
+              seeAllTo={albums.total > albums.items.length ? '/new-releases' : undefined}
             >
               {albums.items.map((album) => (
                 <AlbumCard key={album.id} album={album} />

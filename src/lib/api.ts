@@ -196,6 +196,11 @@ export const catalogApi = {
 
   getAlbums: (params?: ListParams) =>
     api.get<Page<Album>>('/albums', { params }).then((res) => res.data),
+
+  /** Album terbaru, urut tanggal rilis menurun (query + index di backend). */
+  getNewReleases: (params?: ListParams) =>
+    api.get<Page<Album>>('/albums/new-releases', { params }).then((res) => res.data),
+
   getAlbum: (id: number) => api.get<Album>(`/albums/${id}`).then((res) => res.data),
 
   getSongs: (params?: ListParams) =>
