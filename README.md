@@ -65,6 +65,11 @@ bukan memakai logo/nama pihak lain.
   dengan tombol **"Muat lagi"** berpenghitung "Menampilkan X dari Y". Kalau
   halaman berikutnya gagal, tombolnya berubah jadi "Coba lagi" tanpa
   menghilangkan item yang sudah tampil.
+- **Rilisan baru** (`/new-releases`): album diurutkan tanggal rilis menurun
+  oleh backend (`release_date DESC, id DESC`), jadi halaman ini tidak
+  mengurutkan apa pun sendiri. Jalan masuknya dari halaman Album (tombol
+  "Rilisan baru") dan section "Album terbaru" di Beranda, yang kini memakai
+  endpoint yang sama supaya isinya benar-benar yang paling baru.
 - **Daftar artist/album** dan halaman **404** untuk path yang tidak dikenal.
 
 ![Beranda](docs/screenshots/home.png)
@@ -270,7 +275,8 @@ src/
 │   ├── ProtectedRoute.tsx  guard: butuh login
 │   └── GuestOnlyRoute.tsx  guard: hanya tamu (login/register/forgot)
 ├── pages/                  Home, Artists, Albums, ArtistDetail, AlbumDetail,
-│                           Browse, GenreDetail, Charts, Feed, Notifications,
+│                           NewReleases, Browse, GenreDetail, Charts, Feed,
+│                           Notifications,
 │                           Playlists, Admin, auth pages, NotFound
 ├── hooks/
 │   ├── useAsync.ts         fetch + 3 keadaan + cancel guard + reload()
@@ -306,6 +312,7 @@ Aturan yang dipegang:
 | `/browse`, `/genres/:id` | Jelajahi genre & artist per genre | 🌐 publik |
 | `/charts` | Lagu & artist terpopuler 7 hari terakhir | 🌐 publik |
 | `/artists`, `/albums` | Daftar artist / album | 🌐 publik |
+| `/new-releases` | Rilisan baru (album urut tanggal rilis) | 🌐 publik |
 | `/artists/:id`, `/albums/:id` | Detail artist / album | 🌐 publik |
 | `/users/:id` | Profil publik + tombol Ikuti | 🌐 publik |
 | `/library` | Lagu Disukai, album tersimpan, artist diikuti | 🔒 login |
