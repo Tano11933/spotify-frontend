@@ -246,6 +246,13 @@ bukan memakai logo/nama pihak lain.
   di input, slider seek/volume memakai `<input type="range">` bawaan (bisa
   digeser keyboard, terbaca screen reader), focus ring di semua elemen
   interaktif.
+- **Virtualisasi daftar lagu**: daftar panjang yang dimuat sekaligus (seluruh
+  lagu artist, chart) hanya merender baris di sekitar viewport, jadi DOM tidak
+  menampung ratusan baris. Kontainernya fokusabel supaya pengguna keyboard bisa
+  menggulir dengan panah/Page Down lalu men-Tab baris yang tampil, dan tiap
+  baris membawa `aria-setsize`/`aria-posinset` agar posisinya di daftar penuh
+  tetap terbaca screen reader. Daftar yang sudah dipaginasi (maks 24 baris per
+  halaman) tidak perlu ini.
 - Responsif: sidebar → hanya ikon di tablet → bottom-nav di mobile yang
   dibatasi enam tujuan utama (Jelajahi dan Feed ikut, Artis/Album/Chart tetap
   terjangkau lewat tautan section Beranda); kolom progress/volume disembunyikan
@@ -269,6 +276,7 @@ src/
 │   ├── DetailHero.tsx      kepala halaman detail artist/album
 │   ├── SectionGrid.tsx     grid section + tautan "Lihat semua"
 │   ├── LoadMore.tsx        tombol "Muat lagi" + penghitung untuk daftar
+│   ├── VirtualSongList.tsx daftar lagu windowed untuk daftar panjang
 │   ├── StateMessage.tsx    Loading / Empty / Error state yang konsisten
 │   ├── Toast.tsx           container notifikasi
 │   ├── Logo.tsx
@@ -282,6 +290,7 @@ src/
 │   ├── useAsync.ts         fetch + 3 keadaan + cancel guard + reload()
 │   ├── usePagedList.ts     daftar offset + akumulasi "muat lagi" + anti-race
 │   ├── useCursorList.ts    daftar cursor (keyset) untuk feed & riwayat
+│   ├── useVirtualList.ts   window baris untuk daftar panjang (pure + hook)
 │   └── useRealtime.ts      jembatan WebSocket → store (toast, badge, player)
 ├── store/                  Zustand: authStore, playerStore, toastStore,
 │                           notificationStore
@@ -474,14 +483,14 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Yang diuji saat ini (50 test):
+DOM tiruan dan API di-mock. Yang diuji saat ini (56 test):
 
 | Area | Cakupan |
 |---|---|
 | `src/lib` | format durasi/tanggal/sapaan dan penggabung className |
 | `src/schemas` | login, register (trim nama + konfirmasi), forgot, reset |
 | `src/store` | toast (batas 3 + auto-dismiss 4 detik), notifikasi (badge, tandai dibaca), liked (batching `contains`, optimistic + revert saat gagal) |
-| `src/hooks` | `usePagedList` (offset) dan `useCursorList` (cursor): halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah |
+| `src/hooks` | `usePagedList` (offset) dan `useCursorList` (cursor): halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah; `useVirtualList`: perhitungan rentang window (awal, tengah, clamp bawah, sebelum terukur) dan hitung ulang saat digulir |
 | `src/components` | state loading/empty/error + tombol coba lagi, lonceng notifikasi (badge `9+`, `aria-label` menyebut jumlah) |
 
 Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
@@ -489,4 +498,6 @@ transformnya cepat; keduanya tidak mengubah hasil test.
 
 ## Belum Dikerjakan
 
-- Virtualisasi daftar lagu untuk katalog besar
+- Pagination UI untuk daftar yang masih memuat 100 item sekaligus (sisa:
+  halaman detail playlist dan antrean)
+- Test E2E otomatis di CI (saat ini E2E dijalankan manual dengan puppeteer)
