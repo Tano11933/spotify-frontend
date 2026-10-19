@@ -4,7 +4,7 @@ import { ArtistCard } from '@/components/ArtistCard'
 import { DetailHero } from '@/components/DetailHero'
 import { LibraryToggleButton } from '@/components/LibraryToggleButton'
 import { SectionGrid } from '@/components/SectionGrid'
-import { SongRow } from '@/components/SongRow'
+import { VirtualSongList } from '@/components/VirtualSongList'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
 import { PlayButton } from '@/components/ui/PlayButton'
 import { useAsync } from '@/hooks/useAsync'
@@ -94,15 +94,10 @@ export function ArtistDetailPage() {
       {songs.length === 0 ? (
         <EmptyState message="Artist ini belum punya lagu." />
       ) : (
-        <ul className="flex flex-col">
-          {songs.map((song, index) => (
-            <li key={song.id}>
-              {/* showArtist=false: semua lagu di sini milik artist yang sama,
-                  jadi mengulang namanya tiap baris hanya jadi kebisingan. */}
-              <SongRow song={song} index={index} queue={songs} showArtist={false} />
-            </li>
-          ))}
-        </ul>
+        // Daftar ini dimuat sekaligus (sampai 100 lagu), jadi dirender
+        // windowed. showArtist=false: semua lagu milik artist yang sama,
+        // mengulang namanya tiap baris hanya jadi kebisingan.
+        <VirtualSongList songs={songs} showArtist={false} />
       )}
 
       {related.length > 0 && (
