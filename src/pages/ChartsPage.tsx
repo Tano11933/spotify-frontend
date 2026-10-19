@@ -1,11 +1,12 @@
 import { useState } from 'react'
 
 import { ArtistCard } from '@/components/ArtistCard'
-import { SongRow } from '@/components/SongRow'
+import { VirtualSongList } from '@/components/VirtualSongList'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
 import { useAsync } from '@/hooks/useAsync'
 import { discoveryApi } from '@/lib/api'
 import { cn } from '@/lib/cn'
+import type { ChartSong } from '@/types'
 
 type ChartTab = 'tracks' | 'artists'
 
@@ -75,18 +76,14 @@ export function ChartsPage() {
         tracks.items.length === 0 ? (
           <EmptyState message="Belum ada lagu yang diputar dalam 7 hari terakhir. Putar beberapa lagu dulu supaya chart terisi." />
         ) : (
-          <ul className="flex flex-col">
-            {tracks.items.map((song, index) => (
-              <li key={song.id}>
-                <SongRow
-                  song={song}
-                  index={index}
-                  queue={tracks.items}
-                  trailing={formatPlays(song.plays)}
-                />
-              </li>
-            ))}
-          </ul>
+          // Daftar chart dimuat sekaligus (sampai 50 baris) dan diminati
+          // pengguna yang menggulir cepat, jadi dirender windowed. `songs`
+          // bertipe ChartSong; cast-nya aman karena item berasal dari
+          // endpoint chart yang selalu menyertakan `plays`.
+          <VirtualSongList
+            songs={tracks.items}
+            trailing={(song) => formatPlays((song as ChartSong).plays)}
+          />
         )
       ) : artists.items.length === 0 ? (
         <EmptyState message="Belum ada artist yang diputar dalam 7 hari terakhir." />
