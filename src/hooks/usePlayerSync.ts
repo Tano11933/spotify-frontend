@@ -15,22 +15,23 @@ const SYNC_INTERVAL_MS = 30_000
  */
 export function usePlayerSync() {
   const status = useAuthStore((state) => state.status)
+  const userId = useAuthStore((state) => state.user?.id)
   const currentSong = usePlayerStore((state) => state.currentSong)
   const isPlaying = usePlayerStore((state) => state.isPlaying)
 
-  const hasRestored = useRef(false)
+  const previousUserId = useRef(userId)
   const wasPlaying = useRef(false)
 
   // Pulihkan sekali per sesi, dalam keadaan PAUSE: memulai pemutaran otomatis
   // akan mengejutkan user dan mencatat riwayat yang tidak diminta.
   useEffect(() => {
-    if (status !== 'authenticated' || hasRestored.current) return
-    hasRestored.current = true
+    if (status !== 'authenticated' || !userId) return
+    let active = true
 
     void playerApi
       .getState()
       .then((state) => {
-        if (!state.song) return
+        if (!active || !state.song) return
         // Jangan menimpa pemutaran yang sudah berjalan.
         if (usePlayerStore.getState().currentSong) return
         usePlayerStore.getState().restore(state.song, state.position_seconds)
@@ -38,11 +39,15 @@ export function usePlayerSync() {
       .catch(() => {
         // State tidak bisa dimuat bukan kegagalan fatal; pemutar tetap lokal.
       })
-  }, [status])
+    return () => { active = false }
+  }, [status, userId])
 
   // Simpan posisi saat pemutaran berhenti, dan berkala selama memutar.
   useEffect(() => {
-    if (status !== 'authenticated' || !currentSong) return
+    if (status !== 'authenticated' || !currentSong || previousUserId.current !== userId) {
+      wasPlaying.current = false
+      return
+    }
 
     const sync = () => {
       const { currentSong: song, progress } = usePlayerStore.getState()
@@ -63,12 +68,15 @@ export function usePlayerSync() {
       wasPlaying.current = false
       sync()
     }
-  }, [status, currentSong, isPlaying])
+  }, [status, userId, currentSong, isPlaying])
 
   // Keluar akun menghentikan pemutaran; state di server tetap tersimpan.
   useEffect(() => {
-    if (status === 'unauthenticated') usePlayerStore.getState().stop()
-  }, [status])
+    if (status === 'unauthenticated' || previousUserId.current !== userId) {
+      usePlayerStore.getState().stop()
+    }
+    previousUserId.current = userId
+  }, [status, userId])
 
   // Saat tab ditutup, request axios bisa dibatalkan browser; fetch keepalive
   // dikirim sampai selesai walau halamannya sudah dibongkar.
@@ -90,5 +98,5 @@ export function usePlayerSync() {
 
     window.addEventListener('pagehide', handler)
     return () => window.removeEventListener('pagehide', handler)
-  }, [status])
+  }, [status, userId])
 }
