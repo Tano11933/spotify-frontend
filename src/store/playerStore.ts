@@ -2,17 +2,6 @@ import { create } from 'zustand'
 
 import type { Song } from '@/types'
 
-/**
- * State pemutar lagu.
- *
- * Ini pemutar MOCK — tidak ada audio yang benar-benar diputar (PRD.md §5.4:
- * "Player sederhana (mock, tidak perlu streaming audio sungguhan untuk MVP)").
- * Progress-nya digerakkan timer, bukan oleh elemen <audio>. Struktur state-nya
- * sengaja dibuat sama seperti pemutar sungguhan, jadi mengganti timer dengan
- * <audio> nanti tidak menuntut perubahan pada satu pun komponen.
- *
- * Terpisah dari authStore karena alasannya beda: yang ini berubah setiap detik.
- */
 interface PlayerState {
   currentSong: Song | null
   /** Daftar lagu tempat next/previous bergerak (mis. isi satu album). */
@@ -23,6 +12,8 @@ interface PlayerState {
   /** 0..1 */
   volume: number
   audioElement: HTMLAudioElement | null
+  /** Changes even when the same Song object is selected again. */
+  playbackVersion: number
 
   play: (song: Song, queue?: Song[]) => void
   /** Memulihkan lagu & posisi dari server, dalam keadaan pause. */
@@ -31,8 +22,6 @@ interface PlayerState {
   next: () => void
   previous: () => void
   seek: (seconds: number) => void
-  /** Dipanggil timer tiap detik dari NowPlayingBar. */
-  tick: () => void
   setVolume: (volume: number) => void
   attachAudio: (audioElement: HTMLAudioElement | null) => void
   stop: () => void
@@ -45,6 +34,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   progress: 0,
   volume: 0.7,
   audioElement: null,
+  playbackVersion: 0,
 
   play: (song, queue) =>
     set({
@@ -54,6 +44,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       queue: queue && queue.length > 0 ? queue : [song],
       isPlaying: true,
       progress: 0,
+      playbackVersion: get().playbackVersion + 1,
     }),
 
   /** Memulihkan lagu & posisi terakhir dari server, dalam keadaan pause. */
@@ -63,6 +54,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       queue: [song],
       isPlaying: false,
       progress: Math.max(0, Math.min(position, song.duration)),
+      playbackVersion: get().playbackVersion + 1,
     }),
 
   togglePlay: () => {
@@ -74,7 +66,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return
     }
 
-    void audioElement?.play()
     set({ isPlaying: true })
   },
 
@@ -87,7 +78,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const nextSong = queue[(index + 1) % queue.length]
     if (!nextSong) return
 
-    set({ currentSong: nextSong, progress: 0, isPlaying: true })
+    set({ currentSong: nextSong, progress: 0, isPlaying: true, playbackVersion: get().playbackVersion + 1 })
   },
 
   previous: () => {
@@ -98,7 +89,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // tombol previous mengulang lagu ini dari awal, bukan pindah ke lagu
     // sebelumnya. Tekan sekali lagi barulah pindah.
     if (progress > 3) {
-      set({ progress: 0 })
+      get().seek(0)
       return
     }
 
@@ -106,28 +97,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const previousSong = queue[(index - 1 + queue.length) % queue.length]
     if (!previousSong) return
 
-    set({ currentSong: previousSong, progress: 0, isPlaying: true })
+    set({ currentSong: previousSong, progress: 0, isPlaying: true, playbackVersion: get().playbackVersion + 1 })
   },
 
   seek: (seconds) => {
     const { currentSong } = get()
     if (!currentSong) return
-    const nextProgress = Math.min(Math.max(seconds, 0), currentSong.duration)
     const { audioElement } = get()
-    if (audioElement) audioElement.currentTime = nextProgress
+    const duration = audioElement && audioElement.readyState >= 1 && Number.isFinite(audioElement.duration)
+      ? audioElement.duration : currentSong.duration
+    const nextProgress = Math.min(Math.max(seconds, 0), duration)
+    if (audioElement && audioElement.readyState >= 1) audioElement.currentTime = nextProgress
     set({ progress: nextProgress })
-  },
-
-  tick: () => {
-    const { currentSong, isPlaying, progress } = get()
-    if (!currentSong || !isPlaying) return
-
-    if (progress + 1 >= currentSong.duration) {
-      get().next()
-      return
-    }
-
-    set({ progress: progress + 1 })
   },
 
   setVolume: (volume) => {

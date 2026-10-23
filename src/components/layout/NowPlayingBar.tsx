@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router'
 
-import { streamUrl } from '@/lib/api'
-import { cn } from '@/lib/cn'
+import { useAudioPlayback } from '@/hooks/useAudioPlayback'
 import { formatDuration } from '@/lib/format'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -22,84 +21,34 @@ export function NowPlayingBar() {
   const previous = usePlayerStore((state) => state.previous)
   const seek = usePlayerStore((state) => state.seek)
   const setVolume = usePlayerStore((state) => state.setVolume)
-  const attachAudio = usePlayerStore((state) => state.attachAudio)
   const audioRef = useRef<HTMLAudioElement>(null)
-  const [audioUnavailable, setAudioUnavailable] = useState(false)
-
-  useEffect(() => {
-    attachAudio(audioRef.current)
-    return () => attachAudio(null)
-  }, [attachAudio, isPlaying])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !currentSong) return
-
-    setAudioUnavailable(false)
-    // Endpoint stream mendukung Range (seek) dan mengalihkan ke file_url untuk
-    // lagu seeder, jadi satu URL ini berlaku untuk audio unggahan maupun demo.
-    audio.src = streamUrl(currentSong.id)
-    audio.currentTime = 0
-    audio.load()
-  }, [currentSong])
-
-  useEffect(() => {
-    if (!isPlaying || !currentSong || !audioUnavailable) return
-
-    const intervalId = setInterval(() => {
-      usePlayerStore.getState().tick()
-    }, 1000)
-
-    return () => clearInterval(intervalId)
-  }, [audioUnavailable, currentSong, isPlaying])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !currentSong) return
-
-    const updateProgress = () => usePlayerStore.setState({ progress: audio.currentTime })
-    const playNext = () => usePlayerStore.getState().next()
-    const playbackFailed = () => {
-      setAudioUnavailable(true)
-      // URL demo dari seeder memang tidak menunjuk ke file sungguhan.
-      // Tetap pertahankan simulasi pemutaran agar UI tidak ikut mati.
-      usePlayerStore.setState({ isPlaying: true })
-    }
-
-    audio.addEventListener('timeupdate', updateProgress)
-    audio.addEventListener('ended', playNext)
-    audio.addEventListener('error', playbackFailed)
-    return () => {
-      audio.removeEventListener('timeupdate', updateProgress)
-      audio.removeEventListener('ended', playNext)
-      audio.removeEventListener('error', playbackFailed)
-    }
-  }, [currentSong])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    if (isPlaying && currentSong && audio.src === currentSong.file_url) {
-      void audio.play().catch(() => {
-        setAudioUnavailable(true)
-        usePlayerStore.setState({ isPlaying: true })
-      })
-    } else if (!isPlaying) {
-      audio.pause()
-    }
-  }, [isPlaying, currentSong])
-
-  const duration = currentSong?.duration ?? 0
-  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0
+  const { error, loading, duration, retry } = useAudioPlayback(audioRef)
 
   return (
-    <footer className="flex h-20 shrink-0 items-center gap-4 border-t border-spotify-border bg-spotify-black-pure px-4">
+    <footer aria-label="Pemutar musik" className="shrink-0 border-t border-spotify-border bg-spotify-black-pure">
       <audio ref={audioRef} preload="metadata" />
+      <div role="status" aria-live="polite">
+        {error ? (
+          <div className="flex items-center gap-3 px-3 pt-2 text-sm text-spotify-white sm:px-4">
+            <p className="min-w-0 flex-1">{error}</p>
+            <button
+              type="button"
+              onClick={retry}
+              className="min-h-11 shrink-0 rounded-md px-3 font-semibold text-spotify-white underline underline-offset-4 hover:bg-spotify-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
+            >
+              Coba lagi
+            </button>
+          </div>
+        ) : loading ? (
+          <p className="px-3 pt-2 text-sm text-spotify-light-gray sm:px-4">Memuat audio…</p>
+        ) : null}
+      </div>
+      <div className="flex h-20 items-center gap-2 px-2 sm:gap-4 sm:px-4">
       {/* Kolom kiri: info lagu */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {currentSong ? (
           <>
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-spotify-elevated">
+            <div className="hidden h-14 w-14 shrink-0 overflow-hidden rounded-md bg-spotify-elevated sm:block">
               {currentSong.album?.cover_url || currentSong.artist?.image_url ? (
                 <img
                   src={currentSong.album?.cover_url || currentSong.artist?.image_url}
@@ -123,14 +72,14 @@ export function NowPlayingBar() {
       </div>
 
       {/* Kolom tengah: kontrol + progress */}
-      <div className="flex flex-1 flex-col items-center gap-1">
-        <div className="flex items-center gap-4">
+      <div className="flex shrink-0 flex-col items-center sm:min-w-0 sm:flex-1">
+        <div className="flex items-center gap-1 sm:gap-4">
           <button
             type="button"
             onClick={previous}
             disabled={!currentSong}
             aria-label="Lagu sebelumnya"
-            className="text-spotify-light-gray transition-colors hover:text-spotify-white disabled:opacity-40"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-spotify-light-gray transition-colors hover:text-spotify-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:opacity-40"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
               <path d="M6 6h2v12H6V6Zm3 6 9-6v12l-9-6Z" />
@@ -139,10 +88,10 @@ export function NowPlayingBar() {
 
           <button
             type="button"
-            onClick={togglePlay}
+            onClick={error ? retry : togglePlay}
             disabled={!currentSong}
             aria-label={isPlaying ? 'Jeda' : 'Putar'}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-spotify-white text-spotify-black-pure transition-transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-spotify-white text-spotify-black-pure transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:opacity-40 disabled:hover:scale-100"
           >
             {isPlaying ? (
               <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
@@ -165,7 +114,7 @@ export function NowPlayingBar() {
             onClick={next}
             disabled={!currentSong}
             aria-label="Lagu berikutnya"
-            className="text-spotify-light-gray transition-colors hover:text-spotify-white disabled:opacity-40"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-spotify-light-gray transition-colors hover:text-spotify-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:opacity-40"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
               <path d="M16 6h2v12h-2V6Zm-1 6L6 18V6l9 6Z" />
@@ -190,21 +139,11 @@ export function NowPlayingBar() {
             type="range"
             min={0}
             max={duration || 100}
-            value={progress}
+            value={Math.min(progress, duration || 100)}
             onChange={(event) => seek(Number(event.target.value))}
             disabled={!currentSong}
             aria-label="Posisi pemutaran"
-            className={cn(
-              'h-1 flex-1 cursor-pointer appearance-none rounded-full',
-              'disabled:cursor-default',
-            )}
-            // Isi bar dibuat dari gradient dua warna yang titik potongnya
-            // mengikuti progress. Ini satu-satunya nilai dinamis di file ini
-            // yang tidak bisa diungkapkan dengan utility class Tailwind,
-            // karena angkanya berubah tiap detik.
-            style={{
-              background: `linear-gradient(to right, var(--color-spotify-green) ${progressPercent}%, var(--color-spotify-border) ${progressPercent}%)`,
-            }}
+            className="h-8 min-w-0 flex-1 cursor-pointer accent-spotify-green focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:cursor-default"
           />
 
           <span className="text-xs tabular-nums text-spotify-light-gray">
@@ -214,7 +153,7 @@ export function NowPlayingBar() {
       </div>
 
       {/* Kolom kanan: antrean (selalu tampil) + volume (layar sedang ke atas). */}
-      <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
+      <div className="flex shrink-0 items-center justify-end gap-2 sm:flex-1 md:gap-3">
         <Link
           to="/queue"
           aria-label="Antrean"
@@ -242,12 +181,10 @@ export function NowPlayingBar() {
             value={Math.round(volume * 100)}
             onChange={(event) => setVolume(Number(event.target.value) / 100)}
             aria-label="Volume"
-            className="h-1 w-24 cursor-pointer appearance-none rounded-full"
-            style={{
-              background: `linear-gradient(to right, var(--color-spotify-white) ${volume * 100}%, var(--color-spotify-border) ${volume * 100}%)`,
-            }}
+            className="h-11 w-24 cursor-pointer accent-spotify-green focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
           />
         </div>
+      </div>
       </div>
     </footer>
   )
