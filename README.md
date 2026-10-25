@@ -483,7 +483,7 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Yang diuji saat ini (56 test):
+DOM tiruan dan API di-mock. Pemeriksaan terakhir: 104 test dalam 18 file.
 
 | Area | Cakupan |
 |---|---|
@@ -492,12 +492,35 @@ DOM tiruan dan API di-mock. Yang diuji saat ini (56 test):
 | `src/store` | toast (batas 3 + auto-dismiss 4 detik), notifikasi (badge, tandai dibaca), liked (batching `contains`, optimistic + revert saat gagal) |
 | `src/hooks` | `usePagedList` (offset) dan `useCursorList` (cursor): halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah; `useVirtualList`: perhitungan rentang window (awal, tengah, clamp bawah, sebelum terukur) dan hitung ulang saat digulir |
 | `src/components` | state loading/empty/error + tombol coba lagi, lonceng notifikasi (badge `9+`, `aria-label` menyebut jumlah) |
+| Player | native audio lifecycle melalui mock media: play/pause/seek/replay, metadata, restore posisi, error/retry, StrictMode, penyimpanan posisi dan isolasi akun |
+| Pagination mutasi | playlist pribadi/publik, pemilih lagu dan antrean melewati 100 item; refresh rentang halaman setelah tambah/hapus; retry; lagu berulang dalam antrean tetap dipertahankan |
 
 Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
 transformnya cepat; keduanya tidak mengubah hasil test.
 
+## Pagination playlist dan antrean
+
+Daftar playlist pribadi dan publik memakai pagination independen, 24 item per
+request, melalui tombol **Muat lagi**. Pemilih lagu baru memuat katalog saat
+playlist milik user dipilih; pilihan berikutnya dapat dimuat tanpa mengambil
+seluruh katalog di awal. Lagu yang sudah ada dalam playlist tidak ditawarkan lagi.
+
+Antrean juga memuat 24 entri per request. Lagu yang sengaja diantrekan berulang
+tetap tampil berulang. Setelah mutasi, rentang yang sudah dimuat diambil ulang
+dari offset 0 dalam request per halaman, supaya penghapusan tidak melewatkan item
+yang bergeser. Kedalaman daftar dipertahankan sejauh total item masih mencukupi.
+
+Kegagalan halaman berikutnya mempertahankan item sebelumnya dan menyediakan
+**Coba lagi**. Kegagalan refresh mutasi ditandai sebagai daftar yang belum
+diperbarui, dengan aksi **Perbarui daftar/antrean**; refresh yang gagal tidak
+digabungkan dengan halaman lama sebagian-sebagian.
+
+Lihat [verifikasi Hari 2](docs/verification/pagination-day-2.md) untuk cakupan
+tes dan batasan pemeriksaan browser dengan API fixture.
+
 ## Belum Dikerjakan
 
-- Pagination UI untuk daftar yang masih memuat 100 item sekaligus (sisa:
-  halaman detail playlist dan antrean)
-- Test E2E otomatis di CI (saat ini E2E dijalankan manual dengan puppeteer)
+- Endpoint pagination khusus isi playlist: detail playlist saat ini masih
+  menerima seluruh lagu dalam satu response.
+- Test E2E otomatis di CI. Pemeriksaan browser dengan API fixture masih
+  dijalankan terpisah.
