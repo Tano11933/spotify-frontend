@@ -36,7 +36,7 @@ export function LoadMore({
     <div className="mt-6 flex flex-col items-center gap-2">
       {error && <p className="text-sm text-red-300">{error}</p>}
 
-      <Button variant="secondary" size="sm" isLoading={isLoadingMore} onClick={onLoadMore}>
+      <Button variant="secondary" size="sm" className="min-h-11" isLoading={isLoadingMore} onClick={onLoadMore}>
         {error ? 'Coba lagi' : 'Muat lagi'}
       </Button>
 

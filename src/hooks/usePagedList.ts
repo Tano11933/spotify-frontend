@@ -8,7 +8,7 @@ export const PAGE_SIZE = 24
 
 type PrimitiveDeps = readonly (string | number | boolean | null | undefined)[]
 
-interface PagedListState<T> {
+export interface PagedListState<T> {
   items: T[]
   total: number
   /** Pemuatan halaman pertama (tampilkan LoadingState). */
@@ -19,6 +19,10 @@ interface PagedListState<T> {
   hasMore: boolean
   loadMore: () => void
   reload: () => void
+  isRefreshing: boolean
+  refreshError: string | null
+  /** Re-fetch the loaded range after a mutation changes offsets. */
+  refresh: () => Promise<void>
 }
 
 /**
@@ -46,7 +50,10 @@ export function usePagedList<T>(
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [reloadToken, setReloadToken] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
+  const loadedCountRef = useRef(0)
+  const pendingRef = useRef(false)
 
   // fetchPage disimpan di ref dengan alasan yang sama seperti useAsync:
   // pemanggil menulis fungsi inline yang identitasnya baru setiap render, dan
@@ -62,8 +69,11 @@ export function usePagedList<T>(
     (offset: number, append: boolean) => {
       const requestId = requestRef.current + 1
       requestRef.current = requestId
+      pendingRef.current = true
 
       setError(null)
+      setRefreshError(null)
+      setIsRefreshing(false)
       if (append) setIsLoadingMore(true)
       else setIsLoading(true)
 
@@ -72,6 +82,7 @@ export function usePagedList<T>(
         .then((page) => {
           if (requestRef.current !== requestId) return
           setItems((current) => (append ? [...current, ...page.items] : page.items))
+          loadedCountRef.current = (append ? loadedCountRef.current : 0) + page.items.length
           setTotal(page.total)
         })
         .catch((loadError: unknown) => {
@@ -82,6 +93,7 @@ export function usePagedList<T>(
           if (requestRef.current !== requestId) return
           setIsLoading(false)
           setIsLoadingMore(false)
+          pendingRef.current = false
         })
     },
     [pageSize],
@@ -92,18 +104,57 @@ export function usePagedList<T>(
   useEffect(() => {
     setItems([])
     setTotal(0)
+    loadedCountRef.current = 0
     load(0, false)
-  }, [depsKey, reloadToken, load])
+    return () => { requestRef.current += 1; pendingRef.current = false }
+  }, [depsKey, load])
 
   const hasMore = items.length < total
 
   const loadMore = useCallback(() => {
-    if (isLoading || isLoadingMore) return
+    if (pendingRef.current || isLoading || isLoadingMore || refreshError) return
     if (items.length >= total) return
     load(items.length, true)
-  }, [isLoading, isLoadingMore, items.length, total, load])
+  }, [isLoading, isLoadingMore, items.length, total, load, refreshError])
 
-  const reload = useCallback(() => setReloadToken((token) => token + 1), [])
+  const reload = useCallback(() => {
+    setItems([])
+    setTotal(0)
+    loadedCountRef.current = 0
+    load(0, false)
+  }, [load])
 
-  return { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload }
+  const refresh = useCallback(async () => {
+    const requestId = ++requestRef.current
+    const target = Math.max(pageSize, loadedCountRef.current)
+    pendingRef.current = true
+    setIsRefreshing(true)
+    setIsLoadingMore(false)
+    setRefreshError(null)
+    setError(null)
+    try {
+      const refreshed: T[] = []
+      let nextTotal = 0
+      do {
+        const page = await fetchRef.current({ limit: pageSize, offset: refreshed.length })
+        if (requestRef.current !== requestId) return
+        refreshed.push(...page.items)
+        nextTotal = page.total
+        if (page.items.length === 0) break
+      } while (refreshed.length < target && refreshed.length < nextTotal)
+      setItems(refreshed)
+      setTotal(nextTotal)
+      loadedCountRef.current = refreshed.length
+    } catch (cause) {
+      if (requestRef.current === requestId) setRefreshError(getApiErrorMessage(cause))
+    } finally {
+      if (requestRef.current === requestId) {
+        pendingRef.current = false
+        setIsRefreshing(false)
+        setIsLoading(false)
+      }
+    }
+  }, [pageSize])
+
+  return { items, total, isLoading, isLoadingMore, error, hasMore, loadMore, reload, refresh, isRefreshing, refreshError }
 }
