@@ -7,6 +7,7 @@ import { NowPlayingBar } from '@/components/layout/NowPlayingBar'
 import { TopBar } from '@/components/layout/TopBar'
 import { usePlayerSync } from '@/hooks/usePlayerSync'
 import { useRealtime } from '@/hooks/useRealtime'
+import { useQueuePlayback } from '@/hooks/useQueuePlayback'
 
 /**
  * Layout 3-panel — DESIGN.md §3.
@@ -33,6 +34,7 @@ export function AppLayout() {
   // Sinkronisasi pemutar dengan server: resume posisi, progres berkala, dan
   // posisi terakhir saat tab ditutup.
   usePlayerSync()
+  useQueuePlayback()
 
   return (
     // h-screen + overflow-hidden mengunci layout agar hanya area konten yang

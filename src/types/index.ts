@@ -144,6 +144,20 @@ export interface PlayerState {
   updated_at?: string
 }
 
+export interface QueueEntry {
+  id: number
+  position: number
+  added_at: string
+  song: Song
+}
+
+export interface QueueReservation {
+  id: string
+  entry_id: number
+  expires_at: string
+  song: Song
+}
+
 /** Satu entri riwayat putar dari GET /api/me/history. */
 export interface HistoryEntry {
   played_at: string

@@ -16,6 +16,7 @@ export function NowPlayingBar() {
   const isPlaying = usePlayerStore((state) => state.isPlaying)
   const progress = usePlayerStore((state) => state.progress)
   const volume = usePlayerStore((state) => state.volume)
+  const isAdvancing = usePlayerStore((state) => state.isAdvancing)
   const togglePlay = usePlayerStore((state) => state.togglePlay)
   const next = usePlayerStore((state) => state.next)
   const previous = usePlayerStore((state) => state.previous)
@@ -39,8 +40,8 @@ export function NowPlayingBar() {
               Coba lagi
             </button>
           </div>
-        ) : loading ? (
-          <p className="px-3 pt-2 text-sm text-spotify-light-gray sm:px-4">Memuat audio…</p>
+        ) : loading || isAdvancing ? (
+          <p className="px-3 pt-2 text-sm text-spotify-light-gray sm:px-4">{isAdvancing ? 'Memuat antrean…' : 'Memuat audio…'}</p>
         ) : null}
       </div>
       <div className="flex h-20 items-center gap-2 px-2 sm:gap-4 sm:px-4">
@@ -114,6 +115,7 @@ export function NowPlayingBar() {
             onClick={next}
             disabled={!currentSong}
             aria-label="Lagu berikutnya"
+            aria-busy={isAdvancing}
             className="flex h-11 w-11 items-center justify-center rounded-full text-spotify-light-gray transition-colors hover:text-spotify-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:opacity-40"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">

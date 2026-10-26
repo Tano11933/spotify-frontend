@@ -2,7 +2,7 @@ import { createRef, StrictMode } from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({ streamUrl: (id: number) => `http://localhost:9000/api/stream/songs/${id}` }))
+vi.mock('@/lib/api', () => ({ authApi: {}, configureAuthBridge: vi.fn(), streamUrl: (id: number) => `http://localhost:9000/api/stream/songs/${id}` }))
 
 import { useAudioPlayback } from '@/hooks/useAudioPlayback'
 import { usePlayerStore } from '@/store/playerStore'
@@ -69,6 +69,16 @@ describe('useAudioPlayback', () => {
     await waitFor(() => expect(usePlayerStore.getState().isPlaying).toBe(false))
     expect(result.current.error).toContain('Browser menahan')
     expect(usePlayerStore.getState().progress).toBe(0)
+    expect(usePlayerStore.getState().audioStarted).toBeNull()
+  })
+
+  it('marks playback successful only when the native playing event fires', async () => {
+    usePlayerStore.getState().play(makeSong())
+    mountPlayer()
+    await waitFor(() => expect(play).toHaveBeenCalled())
+    expect(usePlayerStore.getState().audioStarted).toBeNull()
+    act(() => audio.dispatchEvent(new Event('playing')))
+    expect(usePlayerStore.getState().audioStarted?.version).toBe(usePlayerStore.getState().playbackVersion)
   })
 
   it('uses media events for progress and detaches on unmount', async () => {

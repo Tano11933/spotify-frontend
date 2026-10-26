@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({ streamUrl: (id: number) => `http://localhost/api/stream/songs/${id}` }))
+vi.mock('@/lib/api', () => ({ authApi: {}, configureAuthBridge: vi.fn(), streamUrl: (id: number) => `http://localhost/api/stream/songs/${id}` }))
 
 import { NowPlayingBar } from '@/components/layout/NowPlayingBar'
 import { usePlayerStore } from '@/store/playerStore'

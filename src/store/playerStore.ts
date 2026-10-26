@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { Song } from '@/types'
+import type { QueueReservation, Song } from '@/types'
 
 interface PlayerState {
   currentSong: Song | null
@@ -14,6 +14,20 @@ interface PlayerState {
   audioElement: HTMLAudioElement | null
   /** Changes even when the same Song object is selected again. */
   playbackVersion: number
+  contextIndex: number
+  queueReservation: (QueueReservation & { ownerId: string; status: 'pending' | 'confirmed' | 'released' }) | null
+  audioStarted: { version: number; userId: string | null } | null
+  accountedPlayback: { version: number; userId: string } | null
+  failedPlaybackVersion: number | null
+  queueRevision: number
+  isAdvancing: boolean
+  advanceHandler: ((entryId?: number) => Promise<void>) | null
+  nextLocal: () => void
+  playQueueEntry: (entryId: number) => void
+  playReserved: (reservation: QueueReservation, ownerId: string) => void
+  markAudioStarted: (userId: string | null) => void
+  markAudioFailed: () => void
+  invalidateQueue: () => void
 
   play: (song: Song, queue?: Song[]) => void
   /** Memulihkan lagu & posisi dari server, dalam keadaan pause. */
@@ -35,6 +49,30 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   volume: 0.7,
   audioElement: null,
   playbackVersion: 0,
+  contextIndex: -1,
+  queueReservation: null,
+  audioStarted: null,
+  accountedPlayback: null,
+  failedPlaybackVersion: null,
+  queueRevision: 0,
+  isAdvancing: false,
+  advanceHandler: null,
+
+  invalidateQueue: () => set((state) => ({ queueRevision: state.queueRevision + 1 })),
+  markAudioStarted: (userId) => {
+    const state = get()
+    if (!state.currentSong || !state.isPlaying) return
+    if (state.audioStarted?.version === state.playbackVersion && state.audioStarted.userId === userId) return
+    set({ audioStarted: { version: state.playbackVersion, userId } })
+  },
+  markAudioFailed: () => set({ failedPlaybackVersion: get().playbackVersion, isPlaying: false }),
+  playQueueEntry: (entryId) => { void get().advanceHandler?.(entryId) },
+  playReserved: (reservation, ownerId) => set({
+    currentSong: reservation.song, progress: 0, isPlaying: true,
+    playbackVersion: get().playbackVersion + 1,
+    queueReservation: { ...reservation, ownerId, status: 'pending' },
+    audioStarted: null, failedPlaybackVersion: null,
+  }),
 
   play: (song, queue) =>
     set({
@@ -45,6 +83,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       isPlaying: true,
       progress: 0,
       playbackVersion: get().playbackVersion + 1,
+      contextIndex: queue?.length ? Math.max(0, queue.findIndex((item) => item === song || item.id === song.id)) : 0,
+      queueReservation: null, audioStarted: null, failedPlaybackVersion: null,
     }),
 
   /** Memulihkan lagu & posisi terakhir dari server, dalam keadaan pause. */
@@ -55,10 +95,15 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       isPlaying: false,
       progress: Math.max(0, Math.min(position, song.duration)),
       playbackVersion: get().playbackVersion + 1,
+      contextIndex: 0, queueReservation: null, audioStarted: null, failedPlaybackVersion: null,
     }),
 
   togglePlay: () => {
     if (!get().currentSong) return
+    if (!get().isPlaying && get().queueReservation?.status === 'released') {
+      get().playQueueEntry(get().queueReservation!.entry_id)
+      return
+    }
     const { audioElement, isPlaying } = get()
     if (isPlaying) {
       audioElement?.pause()
@@ -70,15 +115,22 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   next: () => {
-    const { queue, currentSong } = get()
-    if (!currentSong || queue.length === 0) return
+    const handler = get().advanceHandler
+    if (handler) { void handler(); return }
+    get().nextLocal()
+  },
 
-    const index = queue.findIndex((song) => song.id === currentSong.id)
+  nextLocal: () => {
+    const { queue, currentSong } = get()
+    if (!currentSong) return
+    if (queue.length === 0) { get().stop(); return }
+
+    const index = get().contextIndex
     // Berputar kembali ke awal saat sudah di lagu terakhir.
     const nextSong = queue[(index + 1) % queue.length]
     if (!nextSong) return
 
-    set({ currentSong: nextSong, progress: 0, isPlaying: true, playbackVersion: get().playbackVersion + 1 })
+    set({ currentSong: nextSong, contextIndex: (index + 1) % queue.length, progress: 0, isPlaying: true, playbackVersion: get().playbackVersion + 1, queueReservation: null, audioStarted: null, failedPlaybackVersion: null })
   },
 
   previous: () => {
@@ -93,11 +145,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return
     }
 
-    const index = queue.findIndex((song) => song.id === currentSong.id)
-    const previousSong = queue[(index - 1 + queue.length) % queue.length]
+    const index = get().queueReservation ? get().contextIndex : (get().contextIndex - 1 + queue.length) % queue.length
+    const previousSong = queue[index]
     if (!previousSong) return
 
-    set({ currentSong: previousSong, progress: 0, isPlaying: true, playbackVersion: get().playbackVersion + 1 })
+    set({ currentSong: previousSong, contextIndex: index, progress: 0, isPlaying: true, playbackVersion: get().playbackVersion + 1, queueReservation: null, audioStarted: null, failedPlaybackVersion: null })
   },
 
   seek: (seconds) => {
@@ -125,6 +177,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   stop: () => {
     get().audioElement?.pause()
-    set({ currentSong: null, queue: [], isPlaying: false, progress: 0 })
+    set({ currentSong: null, queue: [], isPlaying: false, progress: 0, contextIndex: -1, queueReservation: null, audioStarted: null, failedPlaybackVersion: null })
   },
 }))

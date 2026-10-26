@@ -20,11 +20,12 @@ export function QueuePage() {
   const revision = usePlayerStore((state) => state.queueRevision)
   const isAdvancing = usePlayerStore((state) => state.isAdvancing)
   const previousRevision = useRef(revision)
+  const { isLoading: isLoadingQueue, refresh: refreshQueue } = list
   useEffect(() => {
-    if (previousRevision.current === revision || list.isLoading) return
+    if (previousRevision.current === revision || isLoadingQueue) return
     previousRevision.current = revision
-    void list.refresh()
-  }, [revision, list.isLoading, list.refresh])
+    void refreshQueue()
+  }, [revision, isLoadingQueue, refreshQueue])
   const pushToast = useToastStore((state) => state.push)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const pendingRef = useRef(false)

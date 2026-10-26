@@ -19,6 +19,8 @@ import type {
   NotificationPage,
   Page,
   PlayerState,
+  QueueEntry,
+  QueueReservation,
   Playlist,
   PublicProfile,
   PublicUser,
@@ -360,6 +362,16 @@ export const playerApi = {
 
   getQueue: (params?: ListParams) =>
     api.get<Page<Song>>('/me/player/queue', { params }).then((res) => res.data),
+  getQueueEntries: (params?: ListParams) =>
+    api.get<Page<QueueEntry>>('/me/player/queue/entries', { params }).then((res) => res.data),
+  reserveQueueEntry: (entryId?: number) =>
+    api.post<QueueReservation | null>('/me/player/queue/reservations', entryId ? { entry_id: entryId } : {}).then((res) => res.data),
+  confirmQueueEntry: (id: string) =>
+    api.post<MessageResponse>(`/me/player/queue/reservations/${id}/confirm`).then((res) => res.data),
+  releaseQueueEntry: (id: string) =>
+    api.delete<MessageResponse>(`/me/player/queue/reservations/${id}`).then((res) => res.data),
+  removeQueueEntry: (entryId: number) =>
+    api.delete<MessageResponse>(`/me/player/queue/entries/${entryId}`).then((res) => res.data),
   addToQueue: (songId: number) =>
     api.post<MessageResponse>('/me/player/queue', { song_id: songId }).then((res) => res.data),
   removeFromQueue: (songId: number) =>

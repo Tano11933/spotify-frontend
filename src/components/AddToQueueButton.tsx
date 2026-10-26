@@ -4,6 +4,7 @@ import { getApiErrorMessage, playerApi } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/store/authStore'
 import { useToastStore } from '@/store/toastStore'
+import { usePlayerStore } from '@/store/playerStore'
 
 interface AddToQueueButtonProps {
   songId: number
@@ -26,6 +27,7 @@ export function AddToQueueButton({ songId, title, className }: AddToQueueButtonP
     setIsPending(true)
     try {
       await playerApi.addToQueue(songId)
+      usePlayerStore.getState().invalidateQueue()
       pushToast({ title: 'Ditambahkan ke antrean', description: title, variant: 'success' })
     } catch (error) {
       pushToast({ title: 'Gagal menambahkan ke antrean', description: getApiErrorMessage(error), variant: 'error' })

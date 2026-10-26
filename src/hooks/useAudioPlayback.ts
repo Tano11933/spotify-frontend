@@ -2,6 +2,7 @@ import { useEffect, useState, type RefObject } from 'react'
 
 import { streamUrl } from '@/lib/api'
 import { usePlayerStore } from '@/store/playerStore'
+import { useAuthStore } from '@/store/authStore'
 
 export function useAudioPlayback(audioRef: RefObject<HTMLAudioElement | null>) {
   const currentSong = usePlayerStore((state) => state.currentSong)
@@ -54,11 +55,12 @@ export function useAudioPlayback(audioRef: RefObject<HTMLAudioElement | null>) {
       }
       setError(null)
       setLoading(false)
+      usePlayerStore.getState().markAudioStarted(useAuthStore.getState().user?.id ?? null)
     }
     const failed = () => {
       setError('Audio tidak bisa dimuat. Periksa koneksi lalu coba lagi.')
       setLoading(false)
-      usePlayerStore.setState({ isPlaying: false })
+      usePlayerStore.getState().markAudioFailed()
     }
 
     audio.addEventListener('timeupdate', updateProgress)
@@ -103,13 +105,17 @@ export function useAudioPlayback(audioRef: RefObject<HTMLAudioElement | null>) {
         ? 'Browser menahan pemutaran. Tekan Putar untuk mencoba lagi.'
         : 'Audio tidak bisa diputar. Periksa koneksi atau pilih lagu lain.')
       setLoading(false)
-      usePlayerStore.setState({ isPlaying: false })
+      usePlayerStore.getState().markAudioFailed()
     })
     return () => { active = false }
   }, [audioRef, currentSong, isPlaying, playbackVersion])
 
   const retry = () => {
     const state = usePlayerStore.getState()
+    if (state.queueReservation && state.queueReservation.status !== 'confirmed') {
+      state.playQueueEntry(state.queueReservation.entry_id)
+      return
+    }
     if (state.currentSong) {
       usePlayerStore.setState({ isPlaying: true, playbackVersion: state.playbackVersion + 1 })
     }
