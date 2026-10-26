@@ -483,7 +483,7 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Pemeriksaan terakhir: 104 test dalam 18 file.
+DOM tiruan dan API di-mock. Pemeriksaan terakhir: 118 test dalam 19 file.
 
 | Area | Cakupan |
 |---|---|
@@ -517,6 +517,20 @@ digabungkan dengan halaman lama sebagian-sebagian.
 
 Lihat [verifikasi Hari 2](docs/verification/pagination-day-2.md) untuk cakupan
 tes dan batasan pemeriksaan browser dengan API fixture.
+
+## Antrean akun dan history playback
+
+Kontrol Next dan akhir lagu memprioritaskan antrean akun sebelum melanjutkan
+konteks album/playlist. Frontend memakai endpoint entries untuk membedakan
+kemunculan lagu yang sama, lalu mengambil reservasi 60 detik sebelum memutar.
+Entri dikonsumsi setelah native audio mengirim playing; kegagalan audio
+melepaskan reservasi agar entri dapat dicoba lagi.
+
+History juga mengikuti event playing, bukan perubahan ikon play. Pause/resume
+tidak dihitung ulang, sedangkan replay yang disengaja dihitung sebagai
+pemutaran baru. Lihat [verifikasi Hari 3](docs/verification/playback-queue-day-3.md)
+untuk cakupan tes dan batasan ketika koneksi terputus di antara konfirmasi dan
+pencatatan history.
 
 ## Belum Dikerjakan
 
