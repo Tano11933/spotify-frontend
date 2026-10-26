@@ -114,8 +114,8 @@ describe('PlaylistsPage pagination', () => {
     const picker = within(await screen.findByRole('region', { name: 'Tambah lagu ke playlist' }))
     await picker.findByRole('option', { name: /Audio fixture 1 •/ })
     for (let index = 0; index < 5; index++) {
-      fireEvent.click(picker.getByRole('button', { name: 'Muat lagi' }))
-      await picker.findByRole('option', { name: new RegExp(`Audio fixture ${Math.min(121, (index + 2) * 24)} •`) })
+      fireEvent.click(picker.getByText('Muat lagi', { exact: true }))
+      await picker.findByText(new RegExp(`Audio fixture ${Math.min(121, (index + 2) * 24)} •`))
     }
     fireEvent.change(picker.getByRole('combobox'), { target: { value: '101' } })
     fireEvent.click(picker.getByRole('button', { name: 'Tambah lagu' }))

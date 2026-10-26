@@ -39,10 +39,10 @@ describe('QueuePage pagination', () => {
     render(<QueuePage />)
     await screen.findByText('Audio fixture 24')
     for (let index = 0; index < 5; index++) {
-      fireEvent.click(screen.getByRole('button', { name: 'Muat lagi' }))
+      fireEvent.click(screen.getByText('Muat lagi', { exact: true }))
       await screen.findByText(`Audio fixture ${Math.min(121, (index + 2) * 24)}`)
     }
-    expect(screen.queryByRole('button', { name: 'Muat lagi' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Muat lagi', { exact: true })).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('Audio fixture 101'))
     expect(advance).toHaveBeenCalledWith(101)
     expect(usePlayerStore.getState().queue).toEqual([])
