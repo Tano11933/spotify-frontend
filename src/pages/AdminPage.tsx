@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
+import { SongAudioUpload } from '@/components/admin/SongAudioUpload'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -548,6 +549,16 @@ export function AdminPage() {
                 Simpan genre
               </Button>
             </form>
+          )}
+          {tab === 'songs' && editingId && songs.find((song) => song.id === editingId) && (
+            <SongAudioUpload
+              key={`${user.id}:${editingId}`}
+              song={songs.find((song) => song.id === editingId)!}
+              onUploaded={(updated) => setSongs((items) => items.map((song) => song.id === updated.id ? updated : song))}
+            />
+          )}
+          {tab === 'songs' && !editingId && (
+            <p className="mt-4 text-sm text-spotify-light-gray">Simpan lagu, lalu pilih Edit untuk mengunggah file audio.</p>
           )}
         </section>
       </div>
