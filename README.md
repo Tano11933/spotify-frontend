@@ -483,7 +483,7 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Pemeriksaan terakhir: 118 test dalam 19 file.
+DOM tiruan dan API di-mock. Pemeriksaan terakhir: 128 test dalam 22 file.
 
 | Area | Cakupan |
 |---|---|
@@ -531,6 +531,21 @@ tidak dihitung ulang, sedangkan replay yang disengaja dihitung sebagai
 pemutaran baru. Lihat [verifikasi Hari 3](docs/verification/playback-queue-day-3.md)
 untuk cakupan tes dan batasan ketika koneksi terputus di antara konfirmasi dan
 pencatatan history.
+
+## Unggah audio dari admin
+
+Admin dapat mengunggah atau mengganti audio melalui **Admin > Lagu > Edit > File audio**.
+Simpan metadata lagu terlebih dahulu untuk membuat lagu baru. Unggahan menerima
+MP3 atau WAV PCM 8/16-bit mono/stereo, maksimal 20 MiB. Validasi isi dilakukan
+backend; pilihan ekstensi di browser hanya pemeriksaan awal.
+
+Progress 100% berarti file terkirim, sementara server masih memvalidasi dan
+menyimpan. Tombol **Putar hasil unggah** memakai player aplikasi untuk memeriksa
+file yang dikembalikan server. Error mempertahankan file agar dapat dicoba ulang.
+Pembatalan atau meninggalkan editor menghentikan request lokal; server mungkin
+sudah menyimpan file jika pengiriman selesai. Periksa pemutaran sebelum retry.
+
+Lihat [verifikasi upload Hari 4](docs/verification/audio-upload-day-4.md).
 
 ## Belum Dikerjakan
 
