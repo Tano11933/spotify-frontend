@@ -382,6 +382,18 @@ export const playerApi = {
 }
 
 export const adminApi = {
+  uploadAudio: (id: number, file: File, options: AudioUploadOptions = {}) => {
+    const body = new FormData()
+    body.append('file', file)
+    return api.post<Song>(`/admin/songs/${id}/audio`, body, {
+      headers: { 'Content-Type': undefined },
+      timeout: 120_000,
+      signal: options.signal,
+      onUploadProgress: (event) => options.onProgress?.(
+        event.total ? Math.min(100, Math.round(event.loaded * 100 / event.total)) : null,
+      ),
+    }).then((response) => response.data)
+  },
   createArtist: (payload: Pick<Artist, 'name' | 'bio' | 'image_url'>) =>
     api.post<Artist>('/artists', payload).then((res) => res.data),
   updateArtist: (id: number, payload: Partial<Pick<Artist, 'name' | 'bio' | 'image_url'>>) =>
@@ -411,4 +423,9 @@ export const adminApi = {
    */
   setArtistGenres: (artistId: number, genreIds: number[]) =>
     api.put<Artist>(`/artists/${artistId}/genres`, { genre_ids: genreIds }).then((res) => res.data),
+}
+
+export interface AudioUploadOptions {
+  signal?: AbortSignal
+  onProgress?: (percent: number | null) => void
 }
