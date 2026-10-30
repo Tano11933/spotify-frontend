@@ -5,6 +5,7 @@ import axios, {
 } from 'axios'
 
 import { env } from '@/lib/env'
+import { authSession, SessionChangedError } from '@/lib/authSession'
 import type {
   Album,
   ApiErrorResponse,
@@ -48,12 +49,16 @@ let authBridge: AuthBridge | null = null
 
 export function configureAuthBridge(bridge: AuthBridge): void {
   authBridge = bridge
+  authSession.onTokens = bridge.onTokensRefreshed
+  authSession.onEnd = bridge.onAuthFailure
 }
 
 api.interceptors.request.use((config) => {
+  const sessionConfig = config as RetriableConfig
+  if (sessionConfig._authSessionId === undefined) sessionConfig._authSessionId = authSession.snapshot?.id ?? null
   const accessToken = authBridge?.getAccessToken()
 
-  if (accessToken) {
+  if (accessToken && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
 
@@ -66,28 +71,24 @@ const NO_REFRESH_PATHS = [
   '/auth/refresh',
   '/auth/forgot-password',
   '/auth/reset-password',
+  '/auth/logout',
 ]
 
 interface RetriableConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
+  _authSessionId?: string | null
 }
 
-let refreshPromise: Promise<TokenPair> | null = null
-
-async function refreshAccessToken(): Promise<TokenPair> {
-  const refreshToken = authBridge?.getRefreshToken()
-
-  if (!refreshToken) {
-    throw new Error('no refresh token available')
-  }
-
-  const response = await axios.post<TokenPair>(
-    `${env.VITE_API_BASE_URL}/api/auth/refresh`,
-    { refresh_token: refreshToken },
-    { headers: { 'Content-Type': 'application/json' }, timeout: 15_000 },
+function refreshAccessToken(rejectedAccess?: string): Promise<TokenPair> {
+  return authSession.refresh(
+    (refreshToken) => axios.post<TokenPair>(
+      `${env.VITE_API_BASE_URL}/api/auth/refresh`,
+      { refresh_token: refreshToken },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 15_000 },
+    ).then((response) => response.data),
+    (error) => axios.isAxiosError(error) && error.response?.status === 401,
+    rejectedAccess,
   )
-
-  return response.data
 }
 
 api.interceptors.response.use(
@@ -106,28 +107,20 @@ api.interceptors.response.use(
       status === 401 &&
       !config._retry &&
       !NO_REFRESH_PATHS.some((path) => url.startsWith(path)) &&
-      Boolean(authBridge?.getRefreshToken())
+      Boolean(authSession.snapshot)
 
     if (!shouldAttemptRefresh) {
       return Promise.reject(error)
     }
 
     config._retry = true
-
-    try {
-      refreshPromise ??= refreshAccessToken()
-      const tokens = await refreshPromise
-
-      authBridge?.onTokensRefreshed(tokens)
-
-      config.headers.Authorization = `Bearer ${tokens.access_token}`
-      return await api.request(config)
-    } catch (refreshError) {
-      authBridge?.onAuthFailure()
-      return Promise.reject(refreshError)
-    } finally {
-      refreshPromise = null
-    }
+    const sessionId = authSession.snapshot?.id
+    if (!sessionId || config._authSessionId !== sessionId) throw new SessionChangedError()
+    const rejectedAccess = String(config.headers.Authorization ?? '').replace(/^Bearer /, '')
+    const tokens = await refreshAccessToken(rejectedAccess)
+    if (authSession.snapshot?.id !== sessionId) throw new SessionChangedError()
+    config.headers.Authorization = `Bearer ${tokens.access_token}`
+    return api.request(config)
   },
 )
 
@@ -167,12 +160,11 @@ export const authApi = {
   login: (payload: { email: string; password: string }) =>
     api.post<AuthResponse>('/auth/login', payload).then((res) => res.data),
 
-  refresh: (refreshToken: string) =>
-    api
-      .post<TokenPair>('/auth/refresh', { refresh_token: refreshToken })
-      .then((res) => res.data),
+  refresh: () => refreshAccessToken(),
 
-  logout: () => api.post<MessageResponse>('/auth/logout').then((res) => res.data),
+  logout: (accessToken?: string) => api.post<MessageResponse>('/auth/logout', undefined,
+    accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
+  ).then((res) => res.data),
 
   me: () => api.get<User>('/auth/me').then((res) => res.data),
 

@@ -1,29 +1,10 @@
 import { create } from 'zustand'
 
 import { authApi, configureAuthBridge, getApiErrorMessage } from '@/lib/api'
+import { authSession } from '@/lib/authSession'
 import type { TokenPair, User } from '@/types'
 
-const REFRESH_TOKEN_KEY = 'spotify-clone.refresh-token'
-
-function readStoredRefreshToken(): string | null {
-  try {
-    return localStorage.getItem(REFRESH_TOKEN_KEY)
-  } catch {
-    return null
-  }
-}
-
-function writeStoredRefreshToken(token: string | null): void {
-  try {
-    if (token) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, token)
-    } else {
-      localStorage.removeItem(REFRESH_TOKEN_KEY)
-    }
-  } catch {
-    
-  }
-}
+let authAction = 0
 
 export type AuthStatus = 'idle' | 'bootstrapping' | 'authenticated' | 'unauthenticated'
 
@@ -45,16 +26,16 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   accessToken: null,
-  refreshToken: readStoredRefreshToken(),
+  refreshToken: authSession.snapshot?.refreshToken ?? null,
   status: 'idle',
 
   setTokens: (tokens) => {
-    writeStoredRefreshToken(tokens.refresh_token)
     set({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token })
   },
 
   clearSession: () => {
-    writeStoredRefreshToken(null)
+    authAction++
+    authSession.end()
     set({
       user: null,
       accessToken: null,
@@ -64,6 +45,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   bootstrap: async () => {
+    const action = ++authAction
+    const sessionId = authSession.snapshot?.id
     if (!get().refreshToken) {
       set({ status: 'unauthenticated' })
       return
@@ -72,24 +55,22 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ status: 'bootstrapping' })
 
     try {
-      // Tukar refresh token DULU, baru panggil /auth/me dengan access token
-      // yang baru. Urutan ini menghindari satu request /auth/me yang pasti
-      // 401 (access token hanya hidup di memori dan hilang saat reload) —
-      // 401 itu tidak salah, tapi mengotori console dan menambah round-trip.
-      const tokens = await authApi.refresh(get().refreshToken!)
-      get().setTokens(tokens)
+      await authApi.refresh()
+      if (action !== authAction || authSession.snapshot?.id !== sessionId) return
 
       const user = await authApi.me()
+      if (action !== authAction || authSession.snapshot?.id !== sessionId) return
       set({ user, status: 'authenticated' })
     } catch {
-      get().clearSession()
+      if (action === authAction) set({ user: null, accessToken: null, status: 'unauthenticated' })
     }
   },
 
   login: async ({ email, password }) => {
+    const action = ++authAction
     const { user, tokens } = await authApi.login({ email, password })
-
-    writeStoredRefreshToken(tokens.refresh_token)
+    if (action !== authAction) return
+    authSession.start(tokens)
     set({
       user,
       accessToken: tokens.access_token,
@@ -103,12 +84,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   logout: async () => {
+    const token = get().accessToken
+    get().clearSession()
     try {
-      await authApi.logout()
+      await authApi.logout(token ?? undefined)
     } catch (error) {
       console.warn('logout request gagal:', getApiErrorMessage(error))
-    } finally {
-      get().clearSession()
     }
   },
 }))
@@ -117,5 +98,8 @@ configureAuthBridge({
   getAccessToken: () => useAuthStore.getState().accessToken,
   getRefreshToken: () => useAuthStore.getState().refreshToken,
   onTokensRefreshed: (tokens) => useAuthStore.getState().setTokens(tokens),
-  onAuthFailure: () => useAuthStore.getState().clearSession(),
+  onAuthFailure: () => {
+    authAction++
+    useAuthStore.setState({ user: null, accessToken: null, refreshToken: null, status: 'unauthenticated' })
+  },
 })
