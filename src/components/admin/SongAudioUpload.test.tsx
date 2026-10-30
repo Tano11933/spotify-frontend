@@ -14,6 +14,8 @@ import { makeSong } from '@/test/player'
 const song = makeSong(4)
 const saved = { ...song, updated_at: '2026-10-28T00:00:00Z' }
 const file = new File(['audio fixture'], 'sample.wav', { type: 'audio/wav' })
+const oversized = new File(['audio fixture'], 'big.mp3')
+Object.defineProperty(oversized, 'size', { value: 20 * 1024 * 1024 + 1 })
 const onUploaded = vi.fn()
 function select(selected = file) {
   fireEvent.change(screen.getByLabelText('File audio'), { target: { files: [selected] } })
@@ -39,10 +41,10 @@ describe('SongAudioUpload', () => {
   })
 
   it.each([
-    [new File([], 'empty.wav'), 'File audio kosong.'],
-    [new File(['x'], 'song.exe'), 'Pilih file MP3 atau WAV.'],
-    [new File([new Uint8Array(20 * 1024 * 1024 + 1)], 'big.mp3'), 'Ukuran file melebihi 20 MiB.'],
-  ])('rejects invalid file %s before sending', (invalid, message) => {
+    { kind: 'empty', file: new File([], 'empty.wav'), message: 'File audio kosong.' },
+    { kind: 'unsupported extension', file: new File(['x'], 'song.exe'), message: 'Pilih file MP3 atau WAV.' },
+    { kind: 'oversized', file: oversized, message: 'Ukuran file melebihi 20 MiB.' },
+  ])('rejects $kind files before sending', ({ file: invalid, message }) => {
     render(<SongAudioUpload song={song} onUploaded={onUploaded} />)
     select(invalid)
     expect(screen.getByRole('alert')).toHaveTextContent(message)
