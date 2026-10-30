@@ -417,17 +417,45 @@ masuk ke bundle; **jangan pernah menaruh secret di file ini**.
 
 ## Catatan Desain
 
-**Access token di memori, refresh token di localStorage.** Access token tidak
-pernah menyentuh storage sehingga skrip XSS yang berjalan di halaman tidak
-bisa mencurinya secara langsung; refresh token butuh persistensi agar sesi
-selamat saat tab ditutup — trade-off yang disadari. Rotasi token di backend
-membatasi kerusakan kalau refresh token bocor.
+**Koordinasi sesi dan refresh antartab.** Bootstrap dan interceptor 401 memakai
+AuthSessionCoordinator yang sama. Request dalam satu tab berbagi satu promise;
+Web Locks mengurutkan rotasi antartab pada origin yang sama. BroadcastChannel
+membagikan pasangan token baru ke memori tab lain. Respons 401 terlambat dapat
+memakai access token yang sudah diperbarui, tanpa memulai rotasi tambahan.
+Request gagal diulang paling banyak sekali. Kegagalan resource setelah retry
+tidak dianggap sebagai kegagalan refresh.
 
-**Kenapa interceptor memakai single-flight, bukan sekadar retry.** Saat access
-token kedaluwarsa, seluruh request yang sedang terbang bisa balas 401
-hampir bersamaan. Tanpa `refreshPromise` bersama, setiap request akan
-memanggil `/auth/refresh` sendiri-sendiri — dan di backend (rotasi token) yang
-menang hanya satu, sisanya ditolak dan user ter-logout tanpa alasan.
+Storage kini menyimpan `{ id, refreshToken }` pada `spotify-clone.auth-session`.
+ID lokal koordinasi ini berubah saat login baru dan tetap selama rotasi; ini
+bukan ID sesi perangkat di backend. Key lama
+`spotify-clone.refresh-token` dibaca untuk migrasi, kemudian dihapus setelah
+penyimpanan berhasil; tab dengan versi aplikasi lama perlu reload. Access token
+tetap di memori dan pesan BroadcastChannel, tanpa disimpan di localStorage.
+Pemisahan ini tidak melindungi dari XSS: skrip pada origin yang sama masih bisa
+membaca refresh token, mengakses state aplikasi, atau mengirim request sebagai
+user. HttpOnly cookie/CSRF tetap pekerjaan terpisah.
+
+Logout langsung membersihkan kredensial lokal dan menyinkronkannya ke tab lain.
+Respons refresh/profile yang terlambat tidak memulihkan sesi lama atau menimpa
+login baru. Login baru di tab lain mengakhiri sesi lokal tab lama; reload tab
+tersebut untuk memulihkan sesi terbaru. Logout server tetap membutuhkan access
+token valid dan bersifat best effort bila koneksi putus atau token sudah expired.
+Access token yang sudah diterbitkan tetap valid sampai exp. Backend masih
+menyimpan satu refresh token per user; sesi perangkat independen masuk Hari 6.
+
+Jika BroadcastChannel tidak tersedia, Web Locks tetap membuat rotasi berurutan;
+tab yang tidak menerima access token dapat merotasi refresh token terbaru.
+Tanpa Web Locks, server CAS tetap membatasi satu penerus per token lama.
+Klien menunggu perubahan token hingga 1,5 detik setelah konflik lalu mencoba
+nilai terbaru, maksimal tiga percobaan. Jika hasilnya masih ambigu, request
+gagal tanpa menghapus sesi tab lain; coba lagi atau login ulang. Ini fallback
+pemulihan, bukan mutex lintas tab. Gangguan jaringan/5xx juga mempertahankan
+refresh token. Pada jalur Web Locks, refresh yang definitif ditolak 401 mengakhiri
+sesi bersama. Timeout menunggu lock adalah 25 detik, request refresh 15 detik.
+
+Jika localStorage diblokir, sesi hanya berada di memori, tidak bertahan setelah
+reload, dan koordinasi antartab tidak dijamin. Jika storage dan BroadcastChannel
+tidak tersedia bersamaan, tiap tab hanya memiliki single-flight lokal.
 
 **Kenapa `useAsync` sendiri, bukan TanStack Query.** Proyek ini menghindari
 dependensi tambahan; tiga keadaan (loading/error/data) diurus satu kali di
@@ -483,7 +511,7 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Pemeriksaan terakhir: 128 test dalam 22 file.
+DOM tiruan dan API di-mock. Pemeriksaan terakhir: 153 test dalam 25 file.
 
 | Area | Cakupan |
 |---|---|
