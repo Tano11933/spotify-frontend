@@ -440,8 +440,10 @@ Respons refresh/profile yang terlambat tidak memulihkan sesi lama atau menimpa
 login baru. Login baru di tab lain mengakhiri sesi lokal tab lama; reload tab
 tersebut untuk memulihkan sesi terbaru. Logout server tetap membutuhkan access
 token valid dan bersifat best effort bila koneksi putus atau token sudah expired.
-Access token yang sudah diterbitkan tetap valid sampai exp. Backend masih
-menyimpan satu refresh token per user; sesi perangkat independen masuk Hari 6.
+Access token yang sudah diterbitkan tetap valid sampai exp. Backend memakai
+refresh session independen per login dengan claim sid. Login di perangkat
+lain tidak menimpa sesi ini; tab dalam satu browser/profil berbagi sesi lokal.
+Refresh token backend versi lama tanpa sid memerlukan login ulang.
 
 Jika BroadcastChannel tidak tersedia, Web Locks tetap membuat rotasi berurutan;
 tab yang tidak menerima access token dapat merotasi refresh token terbaru.
@@ -511,7 +513,7 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Pemeriksaan terakhir: 153 test dalam 25 file.
+DOM tiruan dan API di-mock. Pemeriksaan terakhir: 166 test dalam 28 file.
 
 | Area | Cakupan |
 |---|---|
@@ -574,6 +576,33 @@ Pembatalan atau meninggalkan editor menghentikan request lokal; server mungkin
 sudah menyimpan file jika pengiriman selesai. Periksa pemutaran sebelum retry.
 
 Lihat [verifikasi upload Hari 4](docs/verification/audio-upload-day-4.md).
+
+## Sesi login per perangkat
+
+Buka menu akun di kanan atas lalu **Sesi login**, atau `/account/sessions`.
+Halaman menampilkan petunjuk browser/OS dan IP, waktu login, terakhir
+diperbarui, masa berlaku, serta penanda **Sesi ini**. Petunjuk perangkat dapat
+dipalsukan atau terlihat sama di beberapa perangkat; ini bukan inventaris
+perangkat keras terverifikasi. Terakhir diperbarui mengikuti login/refresh,
+bukan setiap aktivitas mendengarkan musik.
+
+Pencabutan satu sesi mempertahankan sesi lain. Pencabutan sesi ini atau semua
+perangkat membutuhkan konfirmasi, lalu membersihkan sesi lokal dan membuka
+halaman login. Error mempertahankan konfirmasi untuk retry. Respons terlambat
+setelah ganti akun atau meninggalkan halaman tidak mengeluarkan akun baru.
+Daftar dapat diperbarui manual; tidak ada janji update realtime perangkat lain.
+
+Pencabutan mematikan refresh dan pengelolaan sesi. Perangkat lain dapat tetap
+memakai access token yang sudah terbit sampai expired; WebSocket yang sudah
+terbuka juga tidak diputus server berdasarkan sid. Reset password mencabut
+semua refresh session. Lihat kontrak backend `docs/login-sessions.md` pada repo
+backend untuk penyimpanan, transisi token lama, dan batas revocation.
+
+UI mengikuti DESIGN.md dengan dial ENERGY/RHYTHM/MOTION 1/1/1: daftar mengikuti
+urutan aktivitas pembaruan, aksen hijau hanya menandai sesi ini, dan tombol
+outlined menjaga aksi pencabutan tetap terbaca tanpa menambah warna/dekorasi.
+Form konfirmasi terpisah agar pengguna dapat membatalkan sebelum pencabutan.
+Kontrol baru memakai tinggi minimal 44 px dan membungkus pada layar sempit.
 
 ## Belum Dikerjakan
 
