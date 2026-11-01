@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { Button } from '@/components/ui/Button'
@@ -26,6 +26,7 @@ export function TopBar({ isScrolled }: TopBarProps) {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuTrigger = useRef<HTMLButtonElement>(null)
   const [term, setTerm] = useState('')
 
   // Sinkronkan kotak pencarian dengan ?q= saat berada di halaman /search —
@@ -112,13 +113,14 @@ export function TopBar({ isScrolled }: TopBarProps) {
         {status === 'authenticated' && <NotificationBell />}
 
         {status === 'authenticated' && user ? (
-          <div className="relative">
+          <div className="relative" onKeyDown={(event) => { if (event.key === 'Escape') { setIsMenuOpen(false); menuTrigger.current?.focus() } }}>
             <button
+              ref={menuTrigger}
               type="button"
               onClick={() => setIsMenuOpen((open) => !open)}
               aria-haspopup="menu"
               aria-expanded={isMenuOpen}
-              className="flex items-center gap-2 rounded-full bg-spotify-black-pure/70 py-1 pr-3 pl-1 transition-colors hover:bg-spotify-elevated"
+              className="flex min-h-11 items-center gap-2 rounded-full bg-spotify-black-pure/70 py-1 pr-3 pl-1 transition-colors hover:bg-spotify-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-spotify-green text-sm font-bold text-spotify-black-pure">
                 {user.name.charAt(0).toUpperCase()}
@@ -142,6 +144,7 @@ export function TopBar({ isScrolled }: TopBarProps) {
                 >
                   Profil saya
                 </Link>
+                <Link to="/account/sessions" role="menuitem" onClick={() => setIsMenuOpen(false)} className="block min-h-11 w-full px-4 py-3 text-left text-sm text-spotify-white transition-colors hover:bg-spotify-border focus-visible:outline-2 focus-visible:outline-spotify-white">Sesi login</Link>
                 {user.role === 'admin' && (
                   <Link
                     to="/admin"

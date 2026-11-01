@@ -2,6 +2,16 @@ export type UserID = string
 
 export type Role = 'user' | 'admin'
 
+export interface LoginSession {
+  id: string
+  user_agent: string
+  ip_address: string
+  created_at: string
+  last_used_at: string
+  expires_at: string
+  current: boolean
+}
+
 export interface User {
   id: UserID
   name: string

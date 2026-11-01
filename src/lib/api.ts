@@ -17,6 +17,7 @@ import type {
   Genre,
   HistoryEntry,
   MessageResponse,
+  LoginSession,
   NotificationPage,
   Page,
   PlayerState,
@@ -154,6 +155,9 @@ export function getApiErrorMessage(
 }
 
 export const authApi = {
+  getSessions: () => api.get<{ items: LoginSession[] }>('/auth/sessions').then((response) => response.data),
+  revokeSession: (id: string) => api.delete<MessageResponse>(`/auth/sessions/${encodeURIComponent(id)}`).then((response) => response.data),
+  revokeAllSessions: () => api.delete<MessageResponse>('/auth/sessions').then((response) => response.data),
   register: (payload: { name: string; email: string; password: string }) =>
     api.post<User>('/auth/register', payload).then((res) => res.data),
 

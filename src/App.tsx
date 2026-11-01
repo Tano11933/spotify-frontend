@@ -27,6 +27,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SearchPage } from '@/pages/SearchPage'
 import { UserProfilePage } from '@/pages/UserProfilePage'
 import { useAuthStore } from '@/store/authStore'
+import { SessionsPage } from '@/pages/SessionsPage'
 
 export default function App() {
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="queue" element={<QueuePage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="account/sessions" element={<SessionsPage />} />
         </Route>
 
         {/* "*" menangkap semua path yang tidak cocok dengan route mana pun. */}
