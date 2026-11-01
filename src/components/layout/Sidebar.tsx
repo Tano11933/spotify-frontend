@@ -164,7 +164,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="flex items-center justify-around border-t border-spotify-border bg-spotify-black-pure py-2 sm:hidden"
+      className="grid grid-cols-6 items-start border-t border-spotify-border bg-spotify-black-pure py-2 sm:hidden"
     >
       {MOBILE_NAV_ITEMS.map((item) => (
         <NavLink
@@ -173,13 +173,13 @@ export function MobileNav() {
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'flex flex-col items-center gap-1 px-3 py-1 text-xs font-medium transition-colors',
+              'flex min-h-11 min-w-0 flex-col items-center gap-1 px-0.5 py-1 text-center text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-spotify-white',
               isActive ? 'text-spotify-white' : 'text-spotify-light-gray',
             )
           }
         >
           {item.icon}
-          {item.label}
+          <span className="w-full break-words text-center">{item.label}</span>
         </NavLink>
       ))}
     </nav>
