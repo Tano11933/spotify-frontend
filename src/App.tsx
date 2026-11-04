@@ -3,31 +3,35 @@ import { Route, Routes } from 'react-router'
 
 import { GuestOnlyRoute } from '@/components/GuestOnlyRoute'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { PageRoute } from '@/components/PageRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { AlbumDetailPage } from '@/pages/AlbumDetailPage'
-import { AdminPage } from '@/pages/AdminPage'
-import { AlbumsPage } from '@/pages/AlbumsPage'
-import { ArtistDetailPage } from '@/pages/ArtistDetailPage'
-import { ArtistsPage } from '@/pages/ArtistsPage'
-import { BrowsePage } from '@/pages/BrowsePage'
-import { ChartsPage } from '@/pages/ChartsPage'
-import { FeedPage } from '@/pages/FeedPage'
-import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
-import { GenreDetailPage } from '@/pages/GenreDetailPage'
-import { HomePage } from '@/pages/HomePage'
-import { LibraryPage } from '@/pages/LibraryPage'
-import { LoginPage } from '@/pages/LoginPage'
-import { NewReleasesPage } from '@/pages/NewReleasesPage'
-import { NotFoundPage } from '@/pages/NotFoundPage'
-import { NotificationsPage } from '@/pages/NotificationsPage'
-import { PlaylistsPage } from '@/pages/PlaylistsPage'
-import { QueuePage } from '@/pages/QueuePage'
-import { RegisterPage } from '@/pages/RegisterPage'
-import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
-import { SearchPage } from '@/pages/SearchPage'
-import { UserProfilePage } from '@/pages/UserProfilePage'
 import { useAuthStore } from '@/store/authStore'
-import { SessionsPage } from '@/pages/SessionsPage'
+
+const pages = {
+  home: () => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })),
+  search: () => import('@/pages/SearchPage').then((m) => ({ default: m.SearchPage })),
+  browse: () => import('@/pages/BrowsePage').then((m) => ({ default: m.BrowsePage })),
+  genre: () => import('@/pages/GenreDetailPage').then((m) => ({ default: m.GenreDetailPage })),
+  charts: () => import('@/pages/ChartsPage').then((m) => ({ default: m.ChartsPage })),
+  artists: () => import('@/pages/ArtistsPage').then((m) => ({ default: m.ArtistsPage })),
+  artist: () => import('@/pages/ArtistDetailPage').then((m) => ({ default: m.ArtistDetailPage })),
+  albums: () => import('@/pages/AlbumsPage').then((m) => ({ default: m.AlbumsPage })),
+  album: () => import('@/pages/AlbumDetailPage').then((m) => ({ default: m.AlbumDetailPage })),
+  releases: () => import('@/pages/NewReleasesPage').then((m) => ({ default: m.NewReleasesPage })),
+  profile: () => import('@/pages/UserProfilePage').then((m) => ({ default: m.UserProfilePage })),
+  library: () => import('@/pages/LibraryPage').then((m) => ({ default: m.LibraryPage })),
+  feed: () => import('@/pages/FeedPage').then((m) => ({ default: m.FeedPage })),
+  notifications: () => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+  playlists: () => import('@/pages/PlaylistsPage').then((m) => ({ default: m.PlaylistsPage })),
+  queue: () => import('@/pages/QueuePage').then((m) => ({ default: m.QueuePage })),
+  admin: () => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })),
+  sessions: () => import('@/pages/SessionsPage').then((m) => ({ default: m.SessionsPage })),
+  login: () => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
+  register: () => import('@/pages/RegisterPage').then((m) => ({ default: m.RegisterPage })),
+  forgot: () => import('@/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+  reset: () => import('@/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+  notFound: () => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+}
 
 export default function App() {
   useEffect(() => {
@@ -50,9 +54,9 @@ export default function App() {
     <Routes>
       {/* Halaman auth: tanpa sidebar/now-playing bar, dan hanya untuk tamu. */}
       <Route element={<GuestOnlyRoute />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/login" element={<PageRoute load={pages.login} />} />
+        <Route path="/register" element={<PageRoute load={pages.register} />} />
+        <Route path="/forgot-password" element={<PageRoute load={pages.forgot} />} />
       </Route>
 
       {/*
@@ -61,35 +65,35 @@ export default function App() {
         bukan status login. User yang kebetulan masih punya sesi aktif tetap
         harus bisa menyelesaikan reset.
       */}
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/reset-password" element={<PageRoute load={pages.reset} />} />
 
       {/* Semua halaman katalog berbagi satu AppLayout — lihat catatan di
           AppLayout soal kenapa itu membuat pemutar tidak terputus. */}
       <Route path="/" element={<AppLayout />}>
         {/* `index` = route yang cocok saat path-nya persis sama dengan induknya. */}
-        <Route index element={<HomePage />} />
-        <Route path="search" element={<SearchPage />} />
-        <Route path="browse" element={<BrowsePage />} />
-        <Route path="genres/:id" element={<GenreDetailPage />} />
-        <Route path="charts" element={<ChartsPage />} />
-        <Route path="artists" element={<ArtistsPage />} />
-        <Route path="artists/:id" element={<ArtistDetailPage />} />
-        <Route path="albums" element={<AlbumsPage />} />
-        <Route path="albums/:id" element={<AlbumDetailPage />} />
-        <Route path="new-releases" element={<NewReleasesPage />} />
-        <Route path="users/:id" element={<UserProfilePage />} />
+        <Route index element={<PageRoute load={pages.home} />} />
+        <Route path="search" element={<PageRoute load={pages.search} />} />
+        <Route path="browse" element={<PageRoute load={pages.browse} />} />
+        <Route path="genres/:id" element={<PageRoute load={pages.genre} />} />
+        <Route path="charts" element={<PageRoute load={pages.charts} />} />
+        <Route path="artists" element={<PageRoute load={pages.artists} />} />
+        <Route path="artists/:id" element={<PageRoute load={pages.artist} />} />
+        <Route path="albums" element={<PageRoute load={pages.albums} />} />
+        <Route path="albums/:id" element={<PageRoute load={pages.album} />} />
+        <Route path="new-releases" element={<PageRoute load={pages.releases} />} />
+        <Route path="users/:id" element={<PageRoute load={pages.profile} />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="library" element={<LibraryPage />} />
-          <Route path="feed" element={<FeedPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="playlists" element={<PlaylistsPage />} />
-          <Route path="queue" element={<QueuePage />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route path="account/sessions" element={<SessionsPage />} />
+          <Route path="library" element={<PageRoute load={pages.library} />} />
+          <Route path="feed" element={<PageRoute load={pages.feed} />} />
+          <Route path="notifications" element={<PageRoute load={pages.notifications} />} />
+          <Route path="playlists" element={<PageRoute load={pages.playlists} />} />
+          <Route path="queue" element={<PageRoute load={pages.queue} />} />
+          <Route path="admin" element={<PageRoute load={pages.admin} />} />
+          <Route path="account/sessions" element={<PageRoute load={pages.sessions} />} />
         </Route>
 
         {/* "*" menangkap semua path yang tidak cocok dengan route mana pun. */}
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<PageRoute load={pages.notFound} />} />
       </Route>
     </Routes>
   )
