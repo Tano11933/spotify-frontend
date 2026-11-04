@@ -48,6 +48,10 @@ bukan memakai logo/nama pihak lain.
 - **Route guard**: `ProtectedRoute` (playlist, admin) dan `GuestOnlyRoute`
   (login/register/forgot) dengan spinner saat bootstrap, sehingga tidak ada
   kedipan "Masuk/Daftar" untuk user yang sebenarnya sudah login.
+- **Halaman dimuat saat dibuka**: kode admin, auth, dan katalog dipisah per
+  halaman. Kegagalan pemuatan/render menyediakan retry, kembali ke beranda,
+  dan muat ulang aplikasi. Navigasi antarrute katalog mempertahankan player.
+  Detail perilaku dan ukuran bundle ada di [page loading](docs/page-loading.md).
 
 ![Halaman login](docs/screenshots/login.png)
 
@@ -307,6 +311,8 @@ src/
 
 Aturan yang dipegang:
 
+- `App.tsx` mendaftarkan dynamic import per halaman. `PageRoute` menyediakan
+  Suspense dan error boundary di dalam outlet; layout/player tetap terpasang.
 - Halaman **tidak** menyimpan logic HTTP — semuanya lewat `lib/api.ts`.
 - Data lintas halaman hidup di Zustand; komponen katalog murni presentasional.
 - Error dari server selalu melewati `getApiErrorMessage()` supaya pesan
@@ -513,7 +519,7 @@ npm run test:watch
 ```
 
 Vitest + jsdom + React Testing Library, tanpa backend: komponen di-render di
-DOM tiruan dan API di-mock. Pemeriksaan terakhir: 166 test dalam 28 file.
+DOM tiruan dan API di-mock. Pemeriksaan terakhir: 180 test dalam 30 file.
 
 | Area | Cakupan |
 |---|---|
@@ -523,6 +529,8 @@ DOM tiruan dan API di-mock. Pemeriksaan terakhir: 166 test dalam 28 file.
 | `src/hooks` | `usePagedList` (offset) dan `useCursorList` (cursor): halaman pertama, akumulasi "muat lagi", error + reload, hasil lama dibuang saat deps berubah; `useVirtualList`: perhitungan rentang window (awal, tengah, clamp bawah, sebelum terukur) dan hitung ulang saat digulir |
 | `src/components` | state loading/empty/error + tombol coba lagi, lonceng notifikasi (badge `9+`, `aria-label` menyebut jumlah) |
 | Player | native audio lifecycle melalui mock media: play/pause/seek/replay, metadata, restore posisi, error/retry, StrictMode, penyimpanan posisi dan isolasi akun |
+| Routing | pending/rejected lazy import, render error dan retry, reset boundary saat navigasi, guard login/reset-password, dan elemen audio yang tetap terpasang saat loading/error |
+| Akses keyboard | kategori admin mengumumkan pilihan, Edit memfokuskan input, Batal kembali ke tombol asal, slider player mengumumkan waktu/volume |
 | Pagination mutasi | playlist pribadi/publik, pemilih lagu dan antrean melewati 100 item; refresh rentang halaman setelah tambah/hapus; retry; lagu berulang dalam antrean tetap dipertahankan |
 
 Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
