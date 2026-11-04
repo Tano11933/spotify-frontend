@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateMessage'
 import { SongAudioUpload } from '@/components/admin/SongAudioUpload'
@@ -33,6 +33,12 @@ export function AdminPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const editorRef = useRef<HTMLElement>(null)
+  const editTriggerRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (editingId !== null) editorRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+  }, [editingId, tab])
 
   // Penempelan genre ke artist punya state sendiri: artist yang dipilih dan
   // genre yang sedang dicentang.
@@ -244,7 +250,7 @@ export function AdminPage() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
+        <div role="alert" className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
           <svg viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden="true">
             <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 14h-2v-2h2v2Zm0-4h-2V7h2v5Z" />
           </svg>
@@ -252,7 +258,7 @@ export function AdminPage() {
         </div>
       )}
       {message && (
-        <div className="flex items-start gap-3 rounded-lg border border-spotify-green/20 bg-spotify-green/10 px-4 py-3">
+        <div role="status" className="flex items-start gap-3 rounded-lg border border-spotify-green/20 bg-spotify-green/10 px-4 py-3">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="mt-0.5 h-4 w-4 shrink-0 text-spotify-green" aria-hidden="true">
             <path d="M5 13l4 4L19 7" />
           </svg>
@@ -260,11 +266,13 @@ export function AdminPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 border-b border-white/[0.06] pb-3">
+      <div role="group" aria-label="Jenis katalog" className="flex flex-wrap gap-2 border-b border-white/[0.06] pb-3">
         {(['artists', 'albums', 'songs', 'genres'] as Tab[]).map((item) => (
           <Button
             key={item}
             size="sm"
+            className="min-h-11"
+            aria-pressed={tab === item}
             variant={tab === item ? 'primary' : 'ghost'}
             onClick={() => {
               setTab(item)
@@ -301,10 +309,10 @@ export function AdminPage() {
                       <p className="truncate text-sm leading-relaxed text-spotify-light-gray">{artist.bio || 'Tanpa bio'}</p>
                     </div>
                     <div className="flex shrink-0 gap-1.5">
-                      <Button size="sm" variant="ghost" onClick={() => startArtistEdit(artist)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Edit artist ${artist.name}`} onClick={(event) => { editTriggerRef.current = event.currentTarget; startArtistEdit(artist) }}>
                         Edit
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void remove('artists', artist.id)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Hapus artist ${artist.name}`} onClick={() => void remove('artists', artist.id)}>
                         Hapus
                       </Button>
                     </div>
@@ -325,10 +333,10 @@ export function AdminPage() {
                       <p className="truncate text-sm text-spotify-light-gray">{album.artist?.name ?? `Artist #${album.artist_id}`}</p>
                     </div>
                     <div className="flex shrink-0 gap-1.5">
-                      <Button size="sm" variant="ghost" onClick={() => startAlbumEdit(album)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Edit album ${album.title}`} onClick={(event) => { editTriggerRef.current = event.currentTarget; startAlbumEdit(album) }}>
                         Edit
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void remove('albums', album.id)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Hapus album ${album.title}`} onClick={() => void remove('albums', album.id)}>
                         Hapus
                       </Button>
                     </div>
@@ -351,10 +359,10 @@ export function AdminPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-1.5">
-                      <Button size="sm" variant="ghost" onClick={() => startSongEdit(song)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Edit lagu ${song.title}`} onClick={(event) => { editTriggerRef.current = event.currentTarget; startSongEdit(song) }}>
                         Edit
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void remove('songs', song.id)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Hapus lagu ${song.title}`} onClick={() => void remove('songs', song.id)}>
                         Hapus
                       </Button>
                     </div>
@@ -375,10 +383,10 @@ export function AdminPage() {
                       <p className="truncate text-sm text-spotify-light-gray">Slug: {genre.slug}</p>
                     </div>
                     <div className="flex shrink-0 gap-1.5">
-                      <Button size="sm" variant="ghost" onClick={() => startGenreEdit(genre)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Edit genre ${genre.name}`} onClick={(event) => { editTriggerRef.current = event.currentTarget; startGenreEdit(genre) }}>
                         Edit
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void remove('genres', genre.id)}>
+                      <Button size="sm" className="min-h-11" variant="ghost" aria-label={`Hapus genre ${genre.name}`} onClick={() => void remove('genres', genre.id)}>
                         Hapus
                       </Button>
                     </div>
@@ -389,11 +397,11 @@ export function AdminPage() {
         </section>
 
         {/* Form */}
-        <section className="h-fit rounded-xl border border-white/[0.06] bg-spotify-dark-gray p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] xl:sticky xl:top-6">
+        <section ref={editorRef} className="h-fit rounded-xl border border-white/[0.06] bg-spotify-dark-gray p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] xl:sticky xl:top-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <h2 className="text-[1.1rem] font-bold text-spotify-white">{formTitle}</h2>
             {editingId && (
-              <Button size="sm" variant="ghost" onClick={resetForm}>
+              <Button size="sm" className="min-h-11" variant="ghost" onClick={() => { resetForm(); editTriggerRef.current?.focus() }}>
                 Batal
               </Button>
             )}

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 vi.mock('@/store/authStore', () => ({
@@ -24,11 +25,32 @@ beforeEach(() => {
   vi.mocked(adminApi.uploadAudio).mockResolvedValue(makeSong(9))
 })
 
+it('announces the selected category and moves keyboard focus into and out of the song editor', async () => {
+  const user = userEvent.setup()
+  render(<AdminPage />)
+  const songs = await screen.findByRole('button', { name: 'Lagu' })
+  expect(screen.getByRole('button', { name: 'Artist' })).toHaveAttribute('aria-pressed', 'true')
+  songs.focus()
+  await user.keyboard('{Enter}')
+  expect(songs).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('button', { name: 'Artist' })).toHaveAttribute('aria-pressed', 'false')
+  const edit = screen.getByRole('button', { name: 'Edit lagu Audio fixture 9' })
+  expect(screen.getByRole('button', { name: 'Hapus lagu Audio fixture 9' })).toBeEnabled()
+  edit.focus()
+  await user.keyboard('{Enter}')
+  expect(screen.getByLabelText('Judul lagu')).toHaveFocus()
+  const cancel = screen.getByRole('button', { name: 'Batal' })
+  cancel.focus()
+  await user.keyboard('{Enter}')
+  expect(edit).toHaveFocus()
+  expect(screen.getByLabelText('Judul lagu')).toHaveValue('')
+})
+
 it('exposes audio replacement for the edited song and closes it when changing tabs', async () => {
   render(<AdminPage />)
   fireEvent.click(await screen.findByRole('button', { name: 'Lagu' }))
   expect(screen.getByText('Simpan lagu, lalu pilih Edit untuk mengunggah file audio.')).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Edit lagu Audio fixture 9' }))
   expect(screen.getByRole('region', { name: 'Audio untuk Audio fixture 9' })).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('File audio'), { target: { files: [new File(['fixture'], 'test.wav')] } })
   fireEvent.click(screen.getByRole('button', { name: 'Unggah audio' }))

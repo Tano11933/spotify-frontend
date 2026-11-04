@@ -44,7 +44,7 @@ export function NowPlayingBar() {
           <p className="px-3 pt-2 text-sm text-spotify-light-gray sm:px-4">{isAdvancing ? 'Memuat antrean…' : 'Memuat audio…'}</p>
         ) : null}
       </div>
-      <div className="flex h-20 items-center gap-2 px-2 sm:gap-4 sm:px-4">
+      <div className="flex min-h-20 items-center gap-2 px-2 py-2 sm:gap-4 sm:px-4">
       {/* Kolom kiri: info lagu */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {currentSong ? (
@@ -145,7 +145,8 @@ export function NowPlayingBar() {
             onChange={(event) => seek(Number(event.target.value))}
             disabled={!currentSong}
             aria-label="Posisi pemutaran"
-            className="h-8 min-w-0 flex-1 cursor-pointer accent-spotify-green focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:cursor-default"
+            aria-valuetext={`${formatDuration(Math.min(progress, duration || 100))} dari ${formatDuration(duration)}`}
+            className="h-11 min-w-0 flex-1 cursor-pointer accent-spotify-green focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white disabled:cursor-default"
           />
 
           <span className="text-xs tabular-nums text-spotify-light-gray">
@@ -160,7 +161,7 @@ export function NowPlayingBar() {
           to="/queue"
           aria-label="Antrean"
           title="Antrean"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-spotify-light-gray transition-colors hover:bg-white/10 hover:text-spotify-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white md:h-9 md:w-9"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-spotify-light-gray transition-colors hover:bg-white/10 hover:text-spotify-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
             <path d="M4 6h16v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-3v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z" />
@@ -183,6 +184,7 @@ export function NowPlayingBar() {
             value={Math.round(volume * 100)}
             onChange={(event) => setVolume(Number(event.target.value) / 100)}
             aria-label="Volume"
+            aria-valuetext={`${Math.round(volume * 100)}%`}
             className="h-11 w-24 cursor-pointer accent-spotify-green focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spotify-white"
           />
         </div>
