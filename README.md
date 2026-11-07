@@ -536,6 +536,32 @@ DOM tiruan dan API di-mock. Pemeriksaan terakhir: 180 test dalam 30 file.
 Plugin build (React Compiler + Tailwind) sengaja dilewati saat test supaya
 transformnya cepat; keduanya tidak mengubah hasil test.
 
+### Pengujian browser
+
+Siapkan Node.js 24, Go sesuai versi di `go.mod` backend, serta Docker yang
+berjalan. Taruh checkout backend di folder `../spotify-backend`, atau isi
+`E2E_BACKEND_DIR` dengan path checkout yang berisi fixture `test/e2e`.
+
+```bash
+npm ci
+npx playwright install chromium --only-shell
+npm run test:e2e
+```
+
+Runner membuat PostgreSQL dan Redis sementara, memulai backend di port loopback
+yang tersedia, lalu menjalankan Vite di `127.0.0.1:15173`. Akun, WAV sintetis,
+dan email reset tersedia di fixture lokal. Playback dimulai lewat klik di UI.
+Pada akhir run, runner menutup Vite, backend, dan container fixture, termasuk
+saat assertion gagal. Untuk memakai Chrome yang sudah terpasang, set
+`E2E_BROWSER_CHANNEL=chrome` sebelum menjalankan suite.
+
+Workflow **Browser E2E** mengambil backend dari `main` secara default dan mencatat
+SHA checkout di log. Push commit fixture backend terlebih dahulu agar workflow
+bisa menemukannya. Untuk mengunci versi backend, set variabel repository
+`E2E_BACKEND_REF` ke SHA atau isi `backend_ref` saat menjalankan workflow manual.
+Trace dan screenshot kegagalan disimpan di `test-results/` dan tersedia melalui
+artefak workflow bersama HTML report.
+
 ## Pagination playlist dan antrean
 
 Daftar playlist pribadi dan publik memakai pagination independen, 24 item per

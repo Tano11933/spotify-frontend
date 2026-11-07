@@ -1,0 +1,56 @@
+name: Browser E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: Backend commit, tag, or branch (defaults to E2E_BACKEND_REF or main)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: frontend
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Tano11933/spotify-backend
+          ref: ${{ inputs.backend_ref || vars.E2E_BACKEND_REF || 'main' }}
+          path: spotify-backend
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: spotify-backend/go.mod
+          cache-dependency-path: spotify-backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: git -C ../spotify-backend rev-parse HEAD
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium --only-shell
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-e2e-failure
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
