@@ -344,7 +344,7 @@ Aturan yang dipegang:
 
 ### Prasyarat
 
-- Node.js 20+ (diuji pada 20.20)
+- Node.js 24, sama dengan Dockerfile dan CI
 - Backend berjalan di `http://127.0.0.1:9000` — ikuti README repo
   [spotify-backend](https://github.com/Tano11933/spotify-backend)
 
@@ -555,10 +555,11 @@ Pada akhir run, runner menutup Vite, backend, dan container fixture, termasuk
 saat assertion gagal. Untuk memakai Chrome yang sudah terpasang, set
 `E2E_BROWSER_CHANNEL=chrome` sebelum menjalankan suite.
 
-Workflow **Browser E2E** mengambil backend dari `main` secara default dan mencatat
-SHA checkout di log. Push commit fixture backend terlebih dahulu agar workflow
-bisa menemukannya. Untuk mengunci versi backend, set variabel repository
-`E2E_BACKEND_REF` ke SHA atau isi `backend_ref` saat menjalankan workflow manual.
+Workflow **Browser E2E** memakai commit fixture backend `559997a` secara default.
+Untuk menguji versi lain, isi `backend_ref` saat menjalankan workflow manual atau
+atur variabel repository `E2E_BACKEND_REF`. Input manual mendapat prioritas.
+Workflow mencatat SHA checkout dan memeriksa file fixture sebelum menyiapkan
+Go, Node.js, dan Chromium.
 Trace dan screenshot kegagalan disimpan di `test-results/` dan tersedia melalui
 artefak workflow bersama HTML report.
 
@@ -642,5 +643,3 @@ Kontrol baru memakai tinggi minimal 44 px dan membungkus pada layar sempit.
 
 - Endpoint pagination khusus isi playlist: detail playlist saat ini masih
   menerima seluruh lagu dalam satu response.
-- Test E2E otomatis di CI. Pemeriksaan browser dengan API fixture masih
-  dijalankan terpisah.

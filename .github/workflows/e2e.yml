@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       backend_ref:
-        description: Backend commit, tag, or branch (defaults to E2E_BACKEND_REF or main)
+        description: Backend commit, tag, or branch (defaults to E2E_BACKEND_REF or the pinned fixture commit)
         required: false
         type: string
 
@@ -29,9 +29,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Tano11933/spotify-backend
-          ref: ${{ inputs.backend_ref || vars.E2E_BACKEND_REF || 'main' }}
+          ref: ${{ inputs.backend_ref || vars.E2E_BACKEND_REF || '559997a6f78edd8381db4d16b1ca261202332f96' }}
           path: spotify-backend
           persist-credentials: false
+      - name: Verify backend E2E fixtures
+        working-directory: spotify-backend
+        run: |
+          sha="$(git rev-parse HEAD)"
+          printf 'Backend checkout: %s\n' "$sha"
+          if [ ! -f test/e2e/main.go ] || [ ! -f test/e2e/fixtures.go ]; then
+            echo "::error::Backend $sha is missing E2E fixtures. Use a ref containing test/e2e/main.go and test/e2e/fixtures.go."
+            exit 1
+          fi
       - uses: actions/setup-go@v5
         with:
           go-version-file: spotify-backend/go.mod
@@ -41,7 +50,6 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: git -C ../spotify-backend rev-parse HEAD
       - run: npm ci
       - run: npx playwright install --with-deps chromium --only-shell
       - run: npm run test:e2e
