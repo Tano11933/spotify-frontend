@@ -1,6 +1,15 @@
 # ARCHITECTURE.md — Spotify Clone
 
-Dokumen ini menjelaskan struktur folder dan pola kode yang harus diikuti saat menambah fitur baru (Auth, WebSocket, SMTP, Caching) agar konsisten dengan kode yang sudah ada.
+Ringkasan berikut menggambarkan implementasi frontend aktif. Bagian bernomor setelahnya menyimpan rancangan awal.
+
+## Frontend saat ini
+
+- `App.tsx` mendaftarkan route lazy dengan fallback loading dan pemulihan error. `AppLayout` memiliki `NowPlayingBar`, sehingga perpindahan halaman katalog mempertahankan audio. [Pemuatan halaman](docs/page-loading.md)
+- Player memakai elemen audio native dan URL stream backend. Posisi pemutaran tersimpan per akun dan dipulihkan dalam keadaan jeda. Antrean akun direservasi sebelum pindah lagu dan dikonfirmasi setelah audio mulai.
+- Axios menjalankan refresh token yang terkoordinasi antar tab. Zustand menyimpan state sesi dan player. WebSocket menyampaikan notifikasi yang diterima dari API.
+- Vitest menguji unit dan komponen. Playwright menjalankan alur browser terhadap API Go, PostgreSQL, dan Redis sementara. Nginx menyajikan build Vite dan meneruskan URL route SPA ke `index.html`.
+
+Jalankan [panduan Docker](DOCKER.md) untuk demo dan lihat [pengujian browser](README.md#pengujian-browser) untuk fixture otomatis.
 
 ---
 
