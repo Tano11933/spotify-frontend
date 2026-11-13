@@ -555,7 +555,7 @@ Pada akhir run, runner menutup Vite, backend, dan container fixture, termasuk
 saat assertion gagal. Untuk memakai Chrome yang sudah terpasang, set
 `E2E_BROWSER_CHANNEL=chrome` sebelum menjalankan suite.
 
-Workflow **Browser E2E** memakai commit fixture backend `559997a` secara default.
+Workflow **Browser E2E** memakai commit backend `8f04452` secara default.
 Untuk menguji versi lain, isi `backend_ref` saat menjalankan workflow manual atau
 atur variabel repository `E2E_BACKEND_REF`. Input manual mendapat prioritas.
 Workflow mencatat SHA checkout dan memeriksa file fixture sebelum menyiapkan
@@ -568,7 +568,14 @@ artefak workflow bersama HTML report.
 Daftar playlist pribadi dan publik memakai pagination independen, 24 item per
 request, melalui tombol **Muat lagi**. Pemilih lagu baru memuat katalog saat
 playlist milik user dipilih; pilihan berikutnya dapat dimuat tanpa mengambil
-seluruh katalog di awal. Lagu yang sudah ada dalam playlist tidak ditawarkan lagi.
+seluruh katalog di awal. Setiap halaman katalog diperiksa untuk menyaring lagu
+yang sudah ada, termasuk lagu di halaman detail yang belum dimuat.
+
+Daftar playlist hanya memuat metadata. Saat playlist dibuka, frontend memuat
+24 lagu pertama dan menyediakan **Muat lagi** untuk halaman berikutnya.
+Setelah lagu ditambah atau dihapus, rentang yang sudah terlihat dimuat ulang.
+Saat memutar lagu dari playlist yang baru dimuat sebagian, frontend mengambil
+isi lengkap agar kontrol sebelumnya dan berikutnya tetap mengikuti urutan playlist.
 
 Antrean juga memuat 24 entri per request. Lagu yang sengaja diantrekan berulang
 tetap tampil berulang. Setelah mutasi, rentang yang sudah dimuat diambil ulang
@@ -638,8 +645,3 @@ urutan aktivitas pembaruan, aksen hijau hanya menandai sesi ini, dan tombol
 outlined menjaga aksi pencabutan tetap terbaca tanpa menambah warna/dekorasi.
 Form konfirmasi terpisah agar pengguna dapat membatalkan sebelum pencabutan.
 Kontrol baru memakai tinggi minimal 44 px dan membungkus pada layar sempit.
-
-## Belum Dikerjakan
-
-- Endpoint pagination khusus isi playlist: detail playlist saat ini masih
-  menerima seluruh lagu dalam satu response.

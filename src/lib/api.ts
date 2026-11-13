@@ -244,11 +244,17 @@ export const discoveryApi = {
 }
 
 export const playlistApi = {
-  getMine: (params?: ListParams) =>
+  getMine: (params?: ListParams & { include_songs?: boolean }) =>
     api.get<Page<Playlist>>('/playlists', { params }).then((res) => res.data),
-  getPublic: (params?: ListParams) =>
+  getPublic: (params?: ListParams & { include_songs?: boolean }) =>
     api.get<Page<Playlist>>('/playlists/public', { params }).then((res) => res.data),
-  getById: (id: number) => api.get<Playlist>(`/playlists/${id}`).then((res) => res.data),
+  getById: (id: number, signal?: AbortSignal) =>
+    api.get<Playlist>(`/playlists/${id}`, { signal }).then((res) => res.data),
+  getSongs: (id: number, params?: ListParams) =>
+    api.get<Page<Song>>(`/playlists/${id}/songs`, { params }).then((res) => res.data),
+  getMemberSongIDs: (id: number, ids: number[]) =>
+    api.get<{ song_ids: number[] }>(`/playlists/${id}/songs/contains`, { params: { ids: ids.join(',') } })
+      .then((res) => res.data.song_ids),
   create: (payload: { name: string; description: string; is_public: boolean }) =>
     api.post<Playlist>('/playlists', payload).then((res) => res.data),
   update: (id: number, payload: Partial<Pick<Playlist, 'name' | 'description' | 'is_public'>>) =>

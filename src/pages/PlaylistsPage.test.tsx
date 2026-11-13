@@ -4,13 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/api', () => ({
   configureAuthBridge: vi.fn(), authApi: {}, getApiErrorMessage: (cause: Error) => cause.message,
-  playlistApi: { getMine: vi.fn(), getPublic: vi.fn(), create: vi.fn(), delete: vi.fn(), getById: vi.fn(), addSong: vi.fn(), removeSong: vi.fn() },
+  playlistApi: { getMine: vi.fn(), getPublic: vi.fn(), create: vi.fn(), delete: vi.fn(), getById: vi.fn(), getSongs: vi.fn(), getMemberSongIDs: vi.fn(), addSong: vi.fn(), removeSong: vi.fn() },
   catalogApi: { getSongs: vi.fn() },
 }))
 
 import { PlaylistsPage } from '@/pages/PlaylistsPage'
 import { playlistApi, catalogApi } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { usePlayerStore } from '@/store/playerStore'
 import { makeSong } from '@/test/player'
 import type { Playlist } from '@/types'
 
@@ -24,6 +25,7 @@ const page = <T,>(items: T[], params: { limit?: number; offset?: number } = {}) 
 }
 const mine = () => within(screen.getByRole('region', { name: 'Playlist saya' }))
 const publicList = () => within(screen.getByRole('region', { name: 'Playlist publik' }))
+const detail = () => within(screen.getByRole('region', { name: 'Detail playlist' }))
 
 function playlist(id: number, owner = 'me'): Playlist {
   return { id, name: `Playlist ${id}`, description: '', is_public: owner !== 'me', user_id: owner, songs: [], created_at: '', updated_at: '' }
@@ -41,6 +43,10 @@ describe('PlaylistsPage pagination', () => {
     vi.mocked(playlistApi.getPublic).mockReset().mockImplementation(async (params) => page(shared, params))
     vi.mocked(catalogApi.getSongs).mockReset().mockImplementation(async (params) => page(catalog, params))
     vi.mocked(playlistApi.getById).mockImplementation(async (id) => [...owned, ...shared].find((item) => item.id === id)!)
+    vi.mocked(playlistApi.getSongs).mockReset().mockImplementation(async (id, params) =>
+      page([...owned, ...shared].find((item) => item.id === id)?.songs ?? [], params))
+    vi.mocked(playlistApi.getMemberSongIDs).mockReset().mockImplementation(async (id, ids) =>
+      (owned.find((item) => item.id === id)?.songs ?? []).map((song) => song.id).filter((id) => ids.includes(id)))
     vi.mocked(playlistApi.delete).mockReset().mockImplementation(async (id) => {
       owned = owned.filter((item) => item.id !== id)
       shared = shared.filter((item) => item.id !== id)
@@ -64,7 +70,7 @@ describe('PlaylistsPage pagination', () => {
     expect(publicPlaylists.queryByText('Playlist 225')).not.toBeInTheDocument()
     fireEvent.click(publicPlaylists.getByText('Muat lagi', { exact: true }))
     await publicPlaylists.findByText('Playlist 248')
-    expect(playlistApi.getPublic).toHaveBeenLastCalledWith({ limit: 24, offset: 24 })
+    expect(playlistApi.getPublic).toHaveBeenLastCalledWith({ limit: 24, offset: 24, include_songs: false })
   })
 
   it('keeps one list usable when the other initial request fails', async () => {
@@ -85,7 +91,7 @@ describe('PlaylistsPage pagination', () => {
     expect(mine().getByText('Playlist 1')).toBeInTheDocument()
     fireEvent.click(mine().getByRole('button', { name: 'Coba lagi' }))
     await mine().findByText('Playlist 48')
-    expect(playlistApi.getMine).toHaveBeenLastCalledWith({ limit: 24, offset: 24 })
+    expect(playlistApi.getMine).toHaveBeenLastCalledWith({ limit: 24, offset: 24, include_songs: false })
   })
 
   it('refreshes loaded pages after deletion without skipping the shifted item', async () => {
@@ -101,7 +107,7 @@ describe('PlaylistsPage pagination', () => {
     fireEvent.click(mine().getByRole('button', { name: 'Muat lagi' }))
     await mine().findByText('Playlist 73')
     expect(mine().getAllByText('Playlist 49')).toHaveLength(1)
-    expect(playlistApi.getMine).toHaveBeenLastCalledWith({ limit: 24, offset: 48 })
+    expect(playlistApi.getMine).toHaveBeenLastCalledWith({ limit: 24, offset: 48, include_songs: false })
   })
 
   it('paginates the song picker beyond 100 and clears a successful selection', async () => {
@@ -121,8 +127,58 @@ describe('PlaylistsPage pagination', () => {
     fireEvent.click(picker.getByRole('button', { name: 'Tambah lagu' }))
     await screen.findByRole('button', { name: 'Hapus Audio fixture 101 dari playlist' })
     expect(playlistApi.addSong).toHaveBeenCalledWith(1, 101)
-    expect(picker.getByRole('combobox')).toHaveValue('')
-    expect(picker.queryByRole('option', { name: /Audio fixture 101 •/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(picker.getByRole('combobox')).toHaveValue(''))
+    await waitFor(() => expect(picker.queryByRole('option', { name: /Audio fixture 101 •/ })).not.toBeInTheDocument())
+  })
+
+  it('keeps playback continuous across pages and retries a failed song page', async () => {
+    shared = [{ ...playlist(201, 'other'), songs: catalog.slice(0, 25) }]
+    vi.mocked(playlistApi.getById).mockClear()
+    mountPage()
+    fireEvent.click(await publicList().findByText('Playlist 201'))
+    const songs = detail()
+    const lastOnPage = await songs.findByRole('button', { name: /^Audio fixture 24\b/ })
+    expect(songs.queryByRole('button', { name: /^Audio fixture 25\b/ })).not.toBeInTheDocument()
+    expect(playlistApi.getById).not.toHaveBeenCalled()
+
+    fireEvent.click(lastOnPage)
+    await waitFor(() => expect(usePlayerStore.getState().currentSong?.id).toBe(24))
+    usePlayerStore.getState().nextLocal()
+    expect(usePlayerStore.getState().currentSong?.id).toBe(25)
+
+    vi.mocked(playlistApi.getSongs).mockRejectedValueOnce(new Error('Halaman lagu gagal'))
+    fireEvent.click(songs.getByRole('button', { name: 'Muat lagi' }))
+    await songs.findByText('Halaman lagu gagal')
+    expect(lastOnPage).toBeInTheDocument()
+    fireEvent.click(songs.getByRole('button', { name: 'Coba lagi' }))
+    await songs.findByRole('button', { name: /^Audio fixture 25\b/ })
+    expect(playlistApi.getSongs).toHaveBeenLastCalledWith(201, { limit: 24, offset: 24 })
+    expect(songs.queryByRole('button', { name: 'Muat lagi' })).not.toBeInTheDocument()
+  })
+
+  it('refreshes the loaded song range after removal and filters members beyond the first page', async () => {
+    const selected = { ...playlist(1), songs: catalog.slice(0, 49) }
+    owned = [selected]
+    vi.mocked(playlistApi.removeSong).mockImplementation(async (_, id) => {
+      selected.songs = selected.songs.filter((song) => song.id !== id)
+      return { message: 'removed' }
+    })
+    mountPage()
+    fireEvent.click(await mine().findByText('Playlist 1'))
+    const songs = detail()
+    const picker = within(songs.getByRole('region', { name: 'Tambah lagu ke playlist' }))
+    await picker.findByText(/Semua lagu yang dimuat sudah ada/)
+    fireEvent.click(picker.getByRole('button', { name: 'Muat lagi' }))
+    await picker.findByText('Menampilkan 48 dari 121 lagu katalog')
+    expect(picker.queryByRole('option', { name: /Audio fixture 25 •/ })).not.toBeInTheDocument()
+
+    await songs.findByText('Menampilkan 24 dari 49 lagu')
+    fireEvent.click(songs.getAllByRole('button', { name: 'Muat lagi' }).at(-1)!)
+    await songs.findByText('Menampilkan 48 dari 49 lagu')
+    fireEvent.click(songs.getByRole('button', { name: 'Hapus Audio fixture 1 dari playlist' }))
+    await songs.findByRole('button', { name: /^Audio fixture 49\b/ })
+    expect(songs.queryByRole('button', { name: 'Hapus Audio fixture 1 dari playlist' })).not.toBeInTheDocument()
+    await picker.findByRole('option', { name: /Audio fixture 1 •/ })
   })
 
   it('does not infer ownership from only the currently loaded owned page', async () => {

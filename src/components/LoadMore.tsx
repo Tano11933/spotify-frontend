@@ -6,6 +6,7 @@ interface LoadMoreProps {
   total: number
   hasMore: boolean
   isLoadingMore: boolean
+  disabled?: boolean
   /** Error saat memuat halaman berikutnya; halaman pertama ditangani halaman. */
   error?: string | null
   onLoadMore: () => void
@@ -26,6 +27,7 @@ export function LoadMore({
   total,
   hasMore,
   isLoadingMore,
+  disabled = false,
   error,
   onLoadMore,
   label,
@@ -36,7 +38,7 @@ export function LoadMore({
     <div className="mt-6 flex flex-col items-center gap-2">
       {error && <p className="text-sm text-red-300">{error}</p>}
 
-      <Button variant="secondary" size="sm" className="min-h-11" isLoading={isLoadingMore} onClick={onLoadMore}>
+      <Button variant="secondary" size="sm" className="min-h-11" isLoading={isLoadingMore} disabled={disabled || isLoadingMore} onClick={onLoadMore}>
         {error ? 'Coba lagi' : 'Muat lagi'}
       </Button>
 

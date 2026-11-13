@@ -1,21 +1,29 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({ getApiErrorMessage: (cause: Error) => cause.message, catalogApi: { getSongs: vi.fn() } }))
+vi.mock('@/lib/api', () => ({
+  getApiErrorMessage: (cause: Error) => cause.message,
+  catalogApi: { getSongs: vi.fn() },
+  playlistApi: { getMemberSongIDs: vi.fn() },
+}))
 
 import { PlaylistSongPicker } from '@/components/PlaylistSongPicker'
-import { catalogApi } from '@/lib/api'
+import { catalogApi, playlistApi } from '@/lib/api'
 import { makeSong } from '@/test/player'
 
 describe('PlaylistSongPicker', () => {
-  beforeEach(() => vi.mocked(catalogApi.getSongs).mockReset())
+  beforeEach(() => {
+    vi.mocked(catalogApi.getSongs).mockReset()
+    vi.mocked(playlistApi.getMemberSongIDs).mockReset().mockResolvedValue([])
+  })
 
   it('can load another page when all current choices are already in the playlist', async () => {
     const songs = Array.from({ length: 24 }, (_, index) => makeSong(index + 1))
     vi.mocked(catalogApi.getSongs)
       .mockResolvedValueOnce({ items: songs, total: 25, limit: 24, offset: 0 })
       .mockResolvedValueOnce({ items: [makeSong(25)], total: 25, limit: 24, offset: 24 })
-    render(<PlaylistSongPicker selectedSongs={songs} disabled={false} onAdd={vi.fn()} />)
+    vi.mocked(playlistApi.getMemberSongIDs).mockResolvedValueOnce(songs.map((song) => song.id))
+    render(<PlaylistSongPicker playlistId={1} membershipVersion={0} disabled={false} onAdd={vi.fn()} />)
     await screen.findByText(/Semua lagu yang dimuat sudah ada/)
     fireEvent.click(screen.getByRole('button', { name: 'Muat lagi' }))
     await screen.findByRole('option', { name: /Audio fixture 25/ })
@@ -27,7 +35,7 @@ describe('PlaylistSongPicker', () => {
       .mockResolvedValueOnce({ items: [makeSong()], total: 2, limit: 24, offset: 0 })
       .mockRejectedValueOnce(new Error('Katalog gagal'))
       .mockResolvedValueOnce({ items: [makeSong(2)], total: 2, limit: 24, offset: 1 })
-    render(<PlaylistSongPicker selectedSongs={[]} disabled={false} onAdd={vi.fn()} />)
+    render(<PlaylistSongPicker playlistId={1} membershipVersion={0} disabled={false} onAdd={vi.fn()} />)
     await screen.findByRole('option', { name: /Audio fixture 1/ })
     fireEvent.click(screen.getByRole('button', { name: 'Muat lagi' }))
     await screen.findByText('Katalog gagal')
@@ -40,7 +48,7 @@ describe('PlaylistSongPicker', () => {
   it('preserves selection on an add failure and clears it only after success', async () => {
     vi.mocked(catalogApi.getSongs).mockResolvedValue({ items: [makeSong()], total: 1, limit: 24, offset: 0 })
     const add = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
-    render(<PlaylistSongPicker selectedSongs={[]} disabled={false} onAdd={add} />)
+    render(<PlaylistSongPicker playlistId={1} membershipVersion={0} disabled={false} onAdd={add} />)
     await screen.findByRole('option', { name: /Audio fixture 1/ })
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Tambah lagu' }))
