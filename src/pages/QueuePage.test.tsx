@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/api', () => ({
   getApiErrorMessage: (cause: Error) => cause.message,
-  playerApi: { getQueueEntries: vi.fn(), removeQueueEntry: vi.fn() },
+  playerApi: { getQueueEntries: vi.fn(), removeQueueEntry: vi.fn(), moveQueueEntry: vi.fn() },
 }))
 
 import { QueuePage } from '@/pages/QueuePage'
@@ -33,6 +33,49 @@ describe('QueuePage pagination', () => {
       if (index >= 0) queue.splice(index, 1)
       return { message: 'removed' }
     })
+    vi.mocked(playerApi.moveQueueEntry).mockReset().mockImplementation(async (id, direction) => {
+      const index = queue.findIndex((item) => item.id === id)
+      const neighborIndex = index + (direction === 'up' ? -1 : 1)
+      const current = queue[index]
+      const neighbor = queue[neighborIndex]
+      if (!current || !neighbor) return { moved: false }
+      queue[index] = neighbor
+      queue[neighborIndex] = current
+      return { moved: true }
+    })
+  })
+
+  it('moves a specific duplicate below the visible page and refreshes from offset zero', async () => {
+    queue[23] = { ...entry(24), song: makeSong(1) }
+    render(<QueuePage />)
+    const firstUp = await screen.findByRole('button', { name: 'Naik Audio fixture 1, posisi 1' })
+    expect(firstUp).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(firstUp)
+    expect(playerApi.moveQueueEntry).not.toHaveBeenCalled()
+    const down = screen.getByRole('button', { name: 'Turun Audio fixture 1, posisi 24' })
+    down.focus()
+    fireEvent.click(down)
+    await screen.findByRole('button', { name: 'Naik Audio fixture 25, posisi 24' })
+    expect(playerApi.moveQueueEntry).toHaveBeenCalledExactlyOnceWith(24, 'down')
+    expect(playerApi.getQueueEntries).toHaveBeenLastCalledWith({ limit: 24, offset: 0 })
+    expect(screen.getByRole('heading', { name: 'Antrean berikutnya' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Muat lagi' }))
+    const moved = await screen.findByRole('button', { name: 'Naik Audio fixture 1, posisi 25' })
+    fireEvent.click(moved)
+    await screen.findByRole('button', { name: 'Naik Audio fixture 1, posisi 24' })
+    expect(playerApi.moveQueueEntry).toHaveBeenLastCalledWith(24, 'up')
+    expect(playerApi.getQueueEntries).toHaveBeenLastCalledWith({ limit: 24, offset: 24 })
+  })
+
+  it('checks current order after a move conflict without repeating the mutation', async () => {
+    queue = [entry(1), entry(2)]
+    vi.mocked(playerApi.moveQueueEntry).mockRejectedValueOnce({ isAxiosError: true, response: { status: 409 } })
+    render(<QueuePage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Naik Audio fixture 2, posisi 2' }))
+    await waitFor(() => expect(playerApi.getQueueEntries).toHaveBeenCalledTimes(2))
+    expect(playerApi.moveQueueEntry).toHaveBeenCalledExactlyOnceWith(2, 'up')
+    expect(screen.getByRole('button', { name: 'Turun Audio fixture 2, posisi 2' })).toHaveAttribute('aria-disabled', 'true')
+    expect(useToastStore.getState().toasts[0]?.description).toContain('sedang disiapkan untuk diputar')
   })
 
   it('reaches entry 121 and selects it without replacing the local context', async () => {
