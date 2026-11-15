@@ -76,6 +76,55 @@ test('saves a song, plays a playlist, consumes the account queue and restores po
   }), second.id)).toEqual({ restored: true, paused: true, source: true })
 })
 
+test('reorders duplicate queue entries and plays the new first entry next', async ({ page, request, account, album }) => {
+  const first = album.songs.find((song) => song.title === 'Nada E2E 1')!
+  const second = album.songs.find((song) => song.title === 'Nada E2E 2')!
+  const token = await login(page, account)
+  const headers = { Authorization: 'Bearer ' + token }
+  for (const song of [first, first, second]) {
+    const response = await request.post(api + '/me/player/queue', { headers, data: { song_id: song.id } })
+    expect(response.ok()).toBeTruthy()
+  }
+
+  const main = page.getByRole('main')
+  const player = page.getByRole('contentinfo', { name: 'Pemutar musik' })
+  const audio = player.locator('audio')
+  await page.goto('/albums/' + album.id)
+  await main.getByRole('button', { name: first.title, exact: true }).click()
+  await expectPlaying(audio, first.id)
+  await player.getByRole('link', { name: 'Antrean' }).click()
+
+  const up = (position: number) => main.getByRole('button', { name: `Naik ${second.title}, posisi ${position}` })
+  const down = (position: number) => main.getByRole('button', { name: `Turun ${second.title}, posisi ${position}` })
+  await expect(down(3)).toBeDisabled()
+  await up(3).focus()
+  await page.keyboard.press('Enter')
+  await expect(up(2)).toBeEnabled()
+  await expect(up(2)).toBeFocused()
+  await down(2).click()
+  await expect(up(3)).toBeEnabled()
+  await up(3).click()
+  await expect(up(2)).toBeEnabled()
+  await up(2).click()
+  await expect(up(1)).toBeDisabled()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.reload()
+  await expect(up(1)).toBeDisabled()
+  await expect(down(1)).toBeEnabled()
+  const dimensions = await down(1).boundingBox()
+  expect(dimensions?.height).toBeGreaterThanOrEqual(44)
+  expect(dimensions?.width).toBeGreaterThanOrEqual(44)
+  const fits = await main.evaluate((element) => element.scrollWidth <= element.clientWidth)
+  expect(fits).toBe(true)
+  await expect(main.getByRole('button', { name: `Hapus ${first.title} dari antrean` })).toHaveCount(2)
+
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await player.getByRole('button', { name: 'Lagu berikutnya' }).click()
+  await expectPlaying(audio, second.id)
+  await expect(main.getByRole('button', { name: `Hapus ${second.title} dari antrean` })).toHaveCount(0)
+})
+
 test('admin uploads a WAV and plays the uploaded bytes from the real stream', async ({ page, request, album }) => {
   const access = await login(page, admin)
   const title = 'Unggah E2E'

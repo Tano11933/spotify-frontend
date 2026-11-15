@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Tano11933/spotify-backend
-          ref: ${{ inputs.backend_ref || vars.E2E_BACKEND_REF || '8f044526b4af63fccf1a6d8c1627b90bfa54706e' }}
+          ref: ${{ inputs.backend_ref || vars.E2E_BACKEND_REF || 'dc79eb224cf612f4937d4940b3a888e1611720f9' }}
           path: spotify-backend
           persist-credentials: false
       - name: Verify backend E2E fixtures

@@ -555,7 +555,7 @@ Pada akhir run, runner menutup Vite, backend, dan container fixture, termasuk
 saat assertion gagal. Untuk memakai Chrome yang sudah terpasang, set
 `E2E_BROWSER_CHANNEL=chrome` sebelum menjalankan suite.
 
-Workflow **Browser E2E** memakai commit backend `8f04452` secara default.
+Workflow **Browser E2E** memakai commit backend `dc79eb2` secara default.
 Untuk menguji versi lain, isi `backend_ref` saat menjalankan workflow manual atau
 atur variabel repository `E2E_BACKEND_REF`. Input manual mendapat prioritas.
 Workflow mencatat SHA checkout dan memeriksa file fixture sebelum menyiapkan
@@ -581,6 +581,9 @@ Antrean juga memuat 24 entri per request. Lagu yang sengaja diantrekan berulang
 tetap tampil berulang. Setelah mutasi, rentang yang sudah dimuat diambil ulang
 dari offset 0 dalam request per halaman, supaya penghapusan tidak melewatkan item
 yang bergeser. Kedalaman daftar dipertahankan sejauh total item masih mencukupi.
+Gunakan **Naik** atau **Turun** untuk memindahkan satu entri. Entri terakhir yang
+terlihat bisa turun ke halaman berikutnya selama masih ada lagu di bawahnya.
+Pemutar mengikuti urutan baru saat memilih lagu berikutnya dari antrean akun.
 
 Kegagalan halaman berikutnya mempertahankan item sebelumnya dan menyediakan
 **Coba lagi**. Kegagalan refresh mutasi ditandai sebagai daftar yang belum
